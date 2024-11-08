@@ -211,7 +211,8 @@ namespace OpenUtau.Plugin.Builtin {
 			Note note = notes[0];
 			Phoneme[] phonemes = new Phoneme[] {};
 
-			bool isNeedCV = true;
+			bool isNeedV = thisLyric[0] == "ㅇ" && prevLyric[2] == " ";
+			bool isNeedCV = !isNeedV;
 			var vowel = getVowel(thisLyric);
 			
 			// 어두 에일리어스 구현
@@ -223,8 +224,10 @@ namespace OpenUtau.Plugin.Builtin {
 					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) { // - SV
 					phoneme = new Phoneme { phoneme = $"- {Config.middleDiphthongVowels[thisLyric[1]][2]}", position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] };
+					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleShortVowels.ContainsKey(thisLyric[1])) { // - V
 					phoneme = new Phoneme { phoneme = $"- {Config.middleShortVowels[thisLyric[1]]}" };
+					isNeedCV = false;
 				} else if (Config.isUseInitalCV && Config.initalCV.ContainsKey(thisLyric[0])) { // - CV
 					phoneme = new Phoneme { phoneme = $"- {Config.initalCV[thisLyric[0]]}{vowel}" };
 				} else if (Config.isUseInitalChangeCV && Config.initalChangeCV.ContainsKey(thisLyric[0])) { // CV / 단, 어두에 올 경우 자음 변화
@@ -234,14 +237,23 @@ namespace OpenUtau.Plugin.Builtin {
 				phonemes = AddPhoneme(phonemes, phoneme);
 			}
 
-			// // CV 구현
-			// if (isNeedCV) {
-			// 	phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = $"{Config.firstConsonants[thisLyric[0]]}{vowel}", position = 0 });
-			// 	if (isNeedSemiVowel(thisLyric)) {
-			// 		phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}", position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][1]] });
-			// 	}
-			// }
+			// CV 구현
+			if (isNeedCV) {
+				// CV 추가, 단 반모음이라면 반모음 행만 추가됨.
+				// 가 -> ga / 갸 -> gY
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = $"{Config.firstConsonants[thisLyric[0]]}{vowel}", position = 0 }); 
+				
+				if (isNeedSemiVowel(thisLyric)) { // 만약 반모음이라면
+					// 맞춰서 이중모음 추가
+					// 포지션은 설정한 이중모음 길이만큼 밀림
+					phonemes = AddPhoneme(phonemes, new Phoneme { 
+						phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}", 
+						position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] 
+					});
+				}
+			}
 
+			
 			return new Result() {
 				phonemes = phonemes
 			};
