@@ -184,7 +184,7 @@ namespace OpenUtau.Plugin.Builtin {
 			}
 		}
 
-		private string FindInOto(string phoneme, Note note) {
+        private string FindInOto(string phoneme, Note note) {
 			return BaseKoreanPhonemizer.FindInOto(this.singer, phoneme, note, false);
 		}
 
@@ -380,6 +380,40 @@ namespace OpenUtau.Plugin.Builtin {
 					}
 				};
 			}
+        }
+
+		public override Result GenerateEndSound(Note[] notes, Note? prev, Note? next, Note? prevNeighbour, Note? nextNeighbour, Note[] prevNeighbours) {
+			var phonemes = new Phoneme[] {};
+			var note = notes[0];
+
+			if (prevNeighbour == null) { return new Result() { phonemes = new Phoneme[] { new Phoneme { phoneme = FindInOto(note.lyric, note) } } }; }
+
+			// 만약 노트의 가사가 어미숨 음소라면
+			if (Config.endPhoneme.Contains(note.lyric)) {
+				var prevLyrics = KoreanPhonemizerUtil.Separate(((Note)prevNeighbour).lyric);
+				var prevLyric = new string[] {
+					(string) prevLyrics[0],
+					(string) prevLyrics[1],
+					(string) prevLyrics[2],
+				};
+
+				var prefix = "";
+				if (prevLyric[2] == " ") { // 받침 없음
+					prefix = GetSingleVowel(prevLyric[1]);
+				} else {
+					prefix = Config.lastConsonants[prevLyric[2]][0].ToUpper();
+				}
+
+				var phoneme = $"{prefix} {note.lyric}";
+
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = phoneme });
+
+			} else {
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(note.lyric, note) });
+			}
+
+
+			return new Result() { phonemes = phonemes };
         }
     }
 }
