@@ -294,7 +294,7 @@ namespace OpenUtau.Plugin.Builtin {
 				var CBNNVowelPosition = 50;
 
 				if(isNeedSemiVowel(thisLyric)) {
-					CBNNVowelPosition += 50;
+					CBNNVowelPosition += Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
 				}
 
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(CBNNVowelPhoneme, note), position = CBNNVowelPosition } , new Phoneme { phoneme = FindInOto(lastConsonantPhoneme, note), position = lastConsonantPosition });
