@@ -220,18 +220,18 @@ namespace OpenUtau.Plugin.Builtin {
 				var phoneme = new Phoneme {};
 
 				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0])) { // - C
-					phoneme = new Phoneme { phoneme = $"- {Config.initalC[thisLyric[0]]}", position = -Config.initalCLength };
+					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.initalC[thisLyric[0]]}", note), position = -Config.initalCLength };
 					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) { // - SV
-					phoneme = new Phoneme { phoneme = $"- {Config.middleDiphthongVowels[thisLyric[1]][2]}", position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] };
+					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.middleDiphthongVowels[thisLyric[1]][2]}", note), position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] };
 					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleShortVowels.ContainsKey(thisLyric[1])) { // - V
-					phoneme = new Phoneme { phoneme = $"- {Config.middleShortVowels[thisLyric[1]]}" };
+					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.middleShortVowels[thisLyric[1]]}", note) };
 					isNeedCV = false;
 				} else if (Config.isUseInitalCV && Config.initalCV.ContainsKey(thisLyric[0])) { // - CV
-					phoneme = new Phoneme { phoneme = $"- {Config.initalCV[thisLyric[0]]}{vowel}" };
+					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.initalCV[thisLyric[0]]}{vowel}", note) };
 				} else if (Config.isUseInitalChangeCV && Config.initalChangeCV.ContainsKey(thisLyric[0])) { // CV / 단, 어두에 올 경우 자음 변화
-					phoneme = new Phoneme { phoneme = $"{Config.initalChangeCV[thisLyric[0]]}{vowel}" };
+					phoneme = new Phoneme { phoneme = FindInOto($"{Config.initalChangeCV[thisLyric[0]]}{vowel}", note) };
 				}
 
 				phonemes = AddPhoneme(phonemes, phoneme);
@@ -241,19 +241,19 @@ namespace OpenUtau.Plugin.Builtin {
 			if (isNeedCV) {
 				// CV 추가, 단 반모음이라면 반모음 행만 추가됨.
 				// 가 -> ga / 갸 -> gY
-				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = $"{Config.firstConsonants[thisLyric[0]]}{vowel}", position = 0 }); 
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto($"{Config.firstConsonants[thisLyric[0]]}{vowel}", note), position = 0 }); 
 				
 				if (isNeedSemiVowel(thisLyric)) { // 만약 반모음이라면
 					// 맞춰서 이중모음 추가
 					// 포지션은 설정한 이중모음 길이만큼 밀림
 					phonemes = AddPhoneme(phonemes, new Phoneme { 
-						phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}", 
+						phoneme = FindInOto($"{Config.middleDiphthongVowels[thisLyric[1]][1]}", note), 
 						position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] 
 					});
 				}
 			}
 
-			
+
 			return new Result() {
 				phonemes = phonemes
 			};
