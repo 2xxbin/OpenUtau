@@ -215,6 +215,16 @@ namespace OpenUtau.Plugin.Builtin {
 			return vowel;
 		}
 
+		private int GetVCPosition(string consonant, int totalDuration) {
+			var vcLength = 60;
+
+			if (consonant == "ㄹ" || consonant == "ㅎ") { vcLength = 30; }
+			else if (consonant == "ㅅ" ) { vcLength = totalDuration / 3; }
+			else if (KoreanPhonemizerUtil.aspirateSounds.ContainsValue(consonant) || KoreanPhonemizerUtil.fortisSounds.ContainsValue(consonant)) { vcLength = totalDuration / 2; }
+
+			return Math.Min(totalDuration / 2, vcLength);
+		}
+
 		private Result ConvertForCMPX(Note[] notes, string[] prevLyric, string[] thisLyric, string[] nextLyric, Note? nextNeighbour) {
 			Note note = notes[0];
 			Phoneme[] phonemes = new Phoneme[] {};
@@ -300,12 +310,21 @@ namespace OpenUtau.Plugin.Builtin {
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(CBNNVowelPhoneme, note), position = CBNNVowelPosition } , new Phoneme { phoneme = FindInOto(lastConsonantPhoneme, note), position = lastConsonantPosition });
 			}
 
-			// V sV 구현
-			if (isNeedVsV) {
-				var phoneme = $"{GetSingleVowel(thisLyric[1])} {Config.middleDiphthongVowels[nextLyric[1]][2].ToLower()}";
-				var position = totalDuration - Config.semiVowelLength[Config.middleDiphthongVowels[nextLyric[1]][2]];
+			// 다음 노트가 있을 경우
+			if(nextLyric[0] != "null") {
+				// V sV 구현
+				if (isNeedVsV) {
+					var phoneme = $"{GetSingleVowel(thisLyric[1])} {Config.middleDiphthongVowels[nextLyric[1]][2].ToLower()}";
+					var position = totalDuration - Config.semiVowelLength[Config.middleDiphthongVowels[nextLyric[1]][2]];
 
-				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
+					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
+				} else if (thisLyric[2] == " ") { // V C 구현
+					var nextConsonant = Config.firstConsonants[nextLyric[0]];
+					var phoneme = $"{GetSingleVowel(thisLyric[1])} {nextConsonant}";
+					var position = GetVCPosition(nextLyric[0], totalDuration);
+
+					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = totalDuration - position });
+				}
 			}
 
 
