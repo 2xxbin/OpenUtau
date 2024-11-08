@@ -206,12 +206,21 @@ namespace OpenUtau.Plugin.Builtin {
 				return Config.middleShortVowels[lyric[1]];
 			}
 		}
+		
+		private string GetSingleVowel(string vowel) {
+			if(Config.middleDiphthongVowels.ContainsKey(vowel)) {
+				vowel = Config.middleDiphthongVowels[vowel][3];
+			}
+
+			return vowel;
+		}
 
 		private Result ConvertForCMPX(Note[] notes, string[] prevLyric, string[] thisLyric, string[] nextLyric, Note? nextNeighbour) {
 			Note note = notes[0];
 			Phoneme[] phonemes = new Phoneme[] {};
 
 			bool isNeedV = thisLyric[0] == "ㅇ" && prevLyric[2] == " ";
+			bool isNeedVsV = thisLyric[2] == " " && nextLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(nextLyric[1]);
 			bool isNeedCV = !isNeedV;
 			var vowel = getVowel(thisLyric);
 			
@@ -255,6 +264,16 @@ namespace OpenUtau.Plugin.Builtin {
 						position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] 
 					});
 				}
+			} else if (isNeedV) { // VV 구현
+				var phoneme = "";
+
+				// 만약 이중모음이라면
+				if (Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) {
+					phoneme = Config.middleDiphthongVowels[thisLyric[1]][1];
+				} else {
+					phoneme = $"{Config.middleShortVowels[GetSingleVowel(prevLyric[1])]} {Config.middleShortVowels[thisLyric[1]]}";
+				}
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note) });
 			}
 
 
@@ -291,7 +310,16 @@ namespace OpenUtau.Plugin.Builtin {
 				};
 			}
 
-			return ConvertForCMPX(notes, prevLyric, thisLyric, nextLyric, nextNeighbour);
+			try {
+				return ConvertForCMPX(notes, prevLyric, thisLyric, nextLyric, nextNeighbour);
+			} catch (Exception e) {
+				Log.Error(e, $"Render Phoneme Error");
+				return new Result() {
+					phonemes = new Phoneme[] {
+						new Phoneme { phoneme = FindInOto(note.lyric, note) }
+					}
+				};
+			}
         }
     }
 }
