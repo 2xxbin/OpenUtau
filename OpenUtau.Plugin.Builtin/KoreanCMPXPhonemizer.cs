@@ -23,14 +23,12 @@ namespace OpenUtau.Plugin.Builtin {
 		public bool isUseNGC = true;
 		public bool isUseForeignConsonants = true;
 
-		public int initalCLength = 25;
-
-		public Dictionary<string, string> initalC = new Dictionary<string, string>() {
-			{"ㄴ", "n"},
-			{"ㅁ", "m"},
-			{"ㄹ", "l"},
-			{"ㅅ", "s"},
-			{"ㅆ", "ss"},
+		public Dictionary<string, object[]> initalC = new Dictionary<string, object[]>() {
+			{"ㄴ", new object[]{"n", 25}},
+			{"ㅁ", new object[]{"m", 25}},
+			{"ㄹ", new object[]{"l", 25}},
+			{"ㅅ", new object[]{"s", 100}},
+			{"ㅆ", new object[]{"ss", 160}},
 		};
 
 		public Dictionary<string, string> initalChangeCV = new Dictionary<string, string>() {
@@ -210,6 +208,8 @@ namespace OpenUtau.Plugin.Builtin {
 		private string GetSingleVowel(string vowel) {
 			if(Config.middleDiphthongVowels.ContainsKey(vowel)) {
 				vowel = Config.middleDiphthongVowels[vowel][3];
+			} else {
+				vowel = Config.middleShortVowels[vowel];
 			}
 
 			return vowel;
@@ -218,6 +218,7 @@ namespace OpenUtau.Plugin.Builtin {
 		private Result ConvertForCMPX(Note[] notes, string[] prevLyric, string[] thisLyric, string[] nextLyric, Note? nextNeighbour) {
 			Note note = notes[0];
 			Phoneme[] phonemes = new Phoneme[] {};
+			int totalDuration = notes.Sum(n => n.duration);
 
 			bool isNeedV = thisLyric[0] == "ㅇ" && prevLyric[2] == " ";
 			bool isNeedVsV = thisLyric[2] == " " && nextLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(nextLyric[1]);
@@ -230,12 +231,11 @@ namespace OpenUtau.Plugin.Builtin {
 				var position = 0;
 
 				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0])) { // - C
-					phoneme = $"- {Config.initalC[thisLyric[0]]}";
-					position = -Config.initalCLength;
+					phoneme = $"- {Config.initalC[thisLyric[0]][0]}";
+					position = - int.Parse((string)Config.initalC[thisLyric[0]][1]);
 				} else if (thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) { // - SV
 					phoneme = $"- {Config.middleDiphthongVowels[thisLyric[1]][2]}";
 					position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
-					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleShortVowels.ContainsKey(thisLyric[1])) { // - V
 					phoneme = $"- {Config.middleShortVowels[thisLyric[1]]}";
 					isNeedCV = false;
@@ -254,15 +254,21 @@ namespace OpenUtau.Plugin.Builtin {
 			if (isNeedCV) {
 				// CV 추가, 단 반모음이라면 반모음 행만 추가됨.
 				// 가 -> ga / 갸 -> gY
-				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto($"{Config.firstConsonants[thisLyric[0]]}{vowel}", note), position = 0 }); 
+				var phoneme = "";
+				var position = 0;
+				var consonant = Config.firstConsonants[thisLyric[0]];
+				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0])) {
+					consonant = (string)Config.initalC[thisLyric[0]][0];
+				}
+				phoneme = $"{consonant}{vowel}";
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
 				
 				if (isNeedSemiVowel(thisLyric)) { // 만약 반모음이라면
 					// 맞춰서 이중모음 추가
 					// 포지션은 설정한 이중모음 길이만큼 밀림
-					phonemes = AddPhoneme(phonemes, new Phoneme { 
-						phoneme = FindInOto($"{Config.middleDiphthongVowels[thisLyric[1]][1]}", note), 
-						position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] 
-					});
+					phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}";
+					position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
+					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
 				}
 			} else if (isNeedV) { // VV 구현
 				var phoneme = "";
@@ -271,9 +277,27 @@ namespace OpenUtau.Plugin.Builtin {
 				if (Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) {
 					phoneme = Config.middleDiphthongVowels[thisLyric[1]][1];
 				} else {
-					phoneme = $"{Config.middleShortVowels[GetSingleVowel(prevLyric[1])]} {Config.middleShortVowels[thisLyric[1]]}";
+					phoneme = $"{GetSingleVowel(prevLyric[1])} {Config.middleShortVowels[thisLyric[1]]}";
 				}
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note) });
+			}
+
+			// 받침 구현
+			if (thisLyric[2] != " ") {
+				var singleVowel = GetSingleVowel(thisLyric[1]);
+				var lastConsonant = Config.lastConsonants[thisLyric[2]];
+
+				var lastConsonantPhoneme = $"_{singleVowel}{lastConsonant[0].ToUpper()}";
+				var lastConsonantPosition = totalDuration - Math.Min(totalDuration / 3, 120);
+				
+				var CBNNVowelPhoneme = $"_{singleVowel}{lastConsonant[1]}";
+				var CBNNVowelPosition = 50;
+
+				if(isNeedSemiVowel(thisLyric)) {
+					CBNNVowelPosition += 50;
+				}
+
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(CBNNVowelPhoneme, note), position = CBNNVowelPosition } , new Phoneme { phoneme = FindInOto(lastConsonantPhoneme, note), position = lastConsonantPosition });
 			}
 
 
