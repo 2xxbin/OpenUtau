@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using OpenUtau.Api;
 using OpenUtau.Core;
@@ -15,12 +16,14 @@ namespace OpenUtau.Plugin.Builtin {
 	public class KoreanCMPXConfigYAML {
 		public bool isUseInitalC = true;
 
-		public bool isUseInitalChangeC = true;
+		public bool isUseInitalChangeCV = true;
 
 		public bool isUseInitalCV = true;
 
 		public bool isUseNGC = true;
 		public bool isUseForeignConsonants = true;
+
+		public int initalCLength = 25;
 
 		public Dictionary<string, string> initalC = new Dictionary<string, string>() {
 			{"ㄴ", "n"},
@@ -30,7 +33,7 @@ namespace OpenUtau.Plugin.Builtin {
 			{"ㅆ", "ss"},
 		};
 
-		public Dictionary<string, string> initalChangeC = new Dictionary<string, string>() {
+		public Dictionary<string, string> initalChangeCV = new Dictionary<string, string>() {
 			{"ㄱ", "k"},
 			{"ㄷ", "t"},
 			{"ㅂ", "p"},
@@ -43,6 +46,12 @@ namespace OpenUtau.Plugin.Builtin {
 		public string[] firstForeignConsonants = {"f", "v", "z", "th", "rr", "RR"};
 
 		public string[] endPhoneme = {"R", "H"}; 
+
+		public Dictionary<string, int> semiVowelLength = new Dictionary<string, int>() {
+			{"Y", 50},
+			{"W", 50},
+			{"eu", 50},
+		};
 
 		public Dictionary<string, string> firstConsonants = new Dictionary<string, string>() {
 			{"ㄱ", "g"},
@@ -181,9 +190,58 @@ namespace OpenUtau.Plugin.Builtin {
 			return BaseKoreanPhonemizer.FindInOto(this.singer, phoneme, note, false);
 		}
 
+		private Phoneme[] AddPhoneme(Phoneme[] phonemes, params Phoneme[] addPhonemes) {
+			return phonemes.Concat(addPhonemes).ToArray();
+		}
+
+		private bool isNeedSemiVowel(string[] lyric) {
+			if (Config.middleDiphthongVowels.ContainsKey(lyric[1])) { return true; }
+			return false;
+		}
+
+		private string getVowel(string[] lyric) {
+			if (isNeedSemiVowel(lyric)) {
+				return Config.middleDiphthongVowels[lyric[1]][2];
+			} else {
+				return Config.middleShortVowels[lyric[1]];
+			}
+		}
+
 		private Result ConvertForCMPX(Note[] notes, string[] prevLyric, string[] thisLyric, string[] nextLyric, Note? nextNeighbour) {
+			Note note = notes[0];
 			Phoneme[] phonemes = new Phoneme[] {};
+
+			bool isNeedCV = true;
+			var vowel = getVowel(thisLyric);
 			
+			// 어두 에일리어스 구현
+			if (prevLyric[0] == "null") {
+				var phoneme = new Phoneme {};
+
+				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0])) { // - C
+					phoneme = new Phoneme { phoneme = $"- {Config.initalC[thisLyric[0]]}", position = -Config.initalCLength };
+					isNeedCV = false;
+				} else if (thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) { // - SV
+					phoneme = new Phoneme { phoneme = $"- {Config.middleDiphthongVowels[thisLyric[1]][2]}", position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] };
+				} else if (thisLyric[0] == "ㅇ" && Config.middleShortVowels.ContainsKey(thisLyric[1])) { // - V
+					phoneme = new Phoneme { phoneme = $"- {Config.middleShortVowels[thisLyric[1]]}" };
+				} else if (Config.isUseInitalCV && Config.initalCV.ContainsKey(thisLyric[0])) { // - CV
+					phoneme = new Phoneme { phoneme = $"- {Config.initalCV[thisLyric[0]]}{vowel}" };
+				} else if (Config.isUseInitalChangeCV && Config.initalChangeCV.ContainsKey(thisLyric[0])) { // CV / 단, 어두에 올 경우 자음 변화
+					phoneme = new Phoneme { phoneme = $"{Config.initalChangeCV[thisLyric[0]]}{vowel}" };
+				}
+
+				phonemes = AddPhoneme(phonemes, phoneme);
+			}
+
+			// // CV 구현
+			// if (isNeedCV) {
+			// 	phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = $"{Config.firstConsonants[thisLyric[0]]}{vowel}", position = 0 });
+			// 	if (isNeedSemiVowel(thisLyric)) {
+			// 		phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}", position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][1]] });
+			// 	}
+			// }
+
 			return new Result() {
 				phonemes = phonemes
 			};
