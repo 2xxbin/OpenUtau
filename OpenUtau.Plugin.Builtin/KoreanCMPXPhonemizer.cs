@@ -318,9 +318,16 @@ namespace OpenUtau.Plugin.Builtin {
 					var position = totalDuration - Config.semiVowelLength[Config.middleDiphthongVowels[nextLyric[1]][2]];
 
 					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
-				} else if (thisLyric[2] == " ") { // V C 구현
+				} else { // V C & C C 구현
 					var nextConsonant = Config.firstConsonants[nextLyric[0]];
-					var phoneme = $"{GetSingleVowel(thisLyric[1])} {nextConsonant}";
+					var prefix = "";
+					if (thisLyric[2] != " ") {
+						prefix = Config.lastConsonants[thisLyric[2]][0].ToUpper();
+					} else {
+						prefix = GetSingleVowel(thisLyric[1]);
+					}
+
+					var phoneme = $"{prefix} {nextConsonant}";
 					var position = GetVCPosition(nextLyric[0], totalDuration);
 
 					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = totalDuration - position });
