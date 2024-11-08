@@ -223,7 +223,6 @@ namespace OpenUtau.Plugin.Builtin {
 				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0])) { // - C
 					phoneme = $"- {Config.initalC[thisLyric[0]]}";
 					position = -Config.initalCLength;
-					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) { // - SV
 					phoneme = $"- {Config.middleDiphthongVowels[thisLyric[1]][2]}";
 					position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
@@ -233,8 +232,10 @@ namespace OpenUtau.Plugin.Builtin {
 					isNeedCV = false;
 				} else if (Config.isUseInitalCV && Config.initalCV.ContainsKey(thisLyric[0])) { // - CV
 					phoneme = $"- {Config.initalCV[thisLyric[0]]}{vowel}";
+					isNeedCV = false;
 				} else if (Config.isUseInitalChangeCV && Config.initalChangeCV.ContainsKey(thisLyric[0])) { // CV / 단, 어두에 올 경우 자음 변화
 					phoneme = $"{Config.initalChangeCV[thisLyric[0]]}{vowel}";
+					isNeedCV = false;
 				}
 
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
