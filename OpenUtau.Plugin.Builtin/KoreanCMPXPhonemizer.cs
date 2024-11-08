@@ -217,24 +217,27 @@ namespace OpenUtau.Plugin.Builtin {
 			
 			// 어두 에일리어스 구현
 			if (prevLyric[0] == "null") {
-				var phoneme = new Phoneme {};
+				var phoneme = "";
+				var position = 0;
 
 				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0])) { // - C
-					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.initalC[thisLyric[0]]}", note), position = -Config.initalCLength };
+					phoneme = $"- {Config.initalC[thisLyric[0]]}";
+					position = -Config.initalCLength;
 					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) { // - SV
-					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.middleDiphthongVowels[thisLyric[1]][2]}", note), position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]] };
+					phoneme = $"- {Config.middleDiphthongVowels[thisLyric[1]][2]}";
+					position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
 					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleShortVowels.ContainsKey(thisLyric[1])) { // - V
-					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.middleShortVowels[thisLyric[1]]}", note) };
+					phoneme = $"- {Config.middleShortVowels[thisLyric[1]]}";
 					isNeedCV = false;
 				} else if (Config.isUseInitalCV && Config.initalCV.ContainsKey(thisLyric[0])) { // - CV
-					phoneme = new Phoneme { phoneme = FindInOto($"- {Config.initalCV[thisLyric[0]]}{vowel}", note) };
+					phoneme = $"- {Config.initalCV[thisLyric[0]]}{vowel}";
 				} else if (Config.isUseInitalChangeCV && Config.initalChangeCV.ContainsKey(thisLyric[0])) { // CV / 단, 어두에 올 경우 자음 변화
-					phoneme = new Phoneme { phoneme = FindInOto($"{Config.initalChangeCV[thisLyric[0]]}{vowel}", note) };
+					phoneme = $"{Config.initalChangeCV[thisLyric[0]]}{vowel}";
 				}
 
-				phonemes = AddPhoneme(phonemes, phoneme);
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
 			}
 
 			// CV 구현
