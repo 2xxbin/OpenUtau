@@ -300,6 +300,16 @@ namespace OpenUtau.Plugin.Builtin {
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(CBNNVowelPhoneme, note), position = CBNNVowelPosition } , new Phoneme { phoneme = FindInOto(lastConsonantPhoneme, note), position = lastConsonantPosition });
 			}
 
+			// V sV 구현
+			if (isNeedVsV) {
+				var phoneme = $"{GetSingleVowel(thisLyric[1])} {Config.middleDiphthongVowels[nextLyric[1]][2].ToLower()}";
+				var position = totalDuration - Config.semiVowelLength[Config.middleDiphthongVowels[nextLyric[1]][2]];
+
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
+			}
+
+
+
 
 			return new Result() {
 				phonemes = phonemes
