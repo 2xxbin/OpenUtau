@@ -283,6 +283,11 @@ namespace OpenUtau.Plugin.Builtin {
 				var phoneme = "";
 				var position = 0;
 				var consonant = Config.firstConsonants[thisLyric[0]];
+
+				if (Config.isUseNGC && (prevLyric[2] == "ㅇ" && thisLyric[0] == "ㅇ")) {
+					consonant = "ng";
+				}
+
 				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0]) && (prevLyric[0] == "null" || NOT_USE_CC_BATCHIMS.Contains(prevLyric[2]))) {
 					consonant = (string)Config.initalC[thisLyric[0]][0];
 				}
