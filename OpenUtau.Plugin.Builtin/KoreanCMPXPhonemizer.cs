@@ -314,7 +314,7 @@ namespace OpenUtau.Plugin.Builtin {
 			if(nextLyric[0] != "null") {
 				// V sV 구현
 				if (isNeedVsV) {
-					var phoneme = $"{GetSingleVowel(thisLyric[1])} {Config.middleDiphthongVowels[nextLyric[1]][2].ToLower()}";
+					var phoneme = $"{GetSingleVowel(thisLyric[1])} {Config.middleDiphthongVowels[nextLyric[1]][2].ToUpper()}";
 					var position = totalDuration - Config.semiVowelLength[Config.middleDiphthongVowels[nextLyric[1]][2]];
 
 					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
