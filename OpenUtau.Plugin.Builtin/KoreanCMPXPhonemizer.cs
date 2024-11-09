@@ -236,7 +236,7 @@ namespace OpenUtau.Plugin.Builtin {
 			var vowel = getVowel(thisLyric);
 			
 			// 어두 에일리어스 구현
-			if (prevLyric[0] == "null") {
+			if (prevLyric[0] == "null" || HARD_BATCHIMS.Contains(prevLyric[2])) {
 				var phoneme = "";
 				var position = 0;
 
@@ -257,7 +257,9 @@ namespace OpenUtau.Plugin.Builtin {
 					isNeedCV = false;
 				}
 
-				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
+				if (phoneme != "") {
+					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
+				}
 			}
 
 			// CV 구현
