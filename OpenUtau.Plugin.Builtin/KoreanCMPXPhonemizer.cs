@@ -51,6 +51,12 @@ namespace OpenUtau.Plugin.Builtin {
 			{"eu", 50},
 		};
 
+		public Dictionary<string, string[]> overrideVC = new Dictionary<string, string[]> {
+			{"k", new string[] {"ㅋ", "ㄲ"}},
+			{"p", new string[] {"ㅍ", "ㅃ"}},
+			{"t", new string[] {"ㅌ", "ㄸ", "ㅉ", "ㅊ"}},
+		};
+
 		public Dictionary<string, string> firstConsonants = new Dictionary<string, string>() {
 			{"ㄱ", "g"},
 			{"ㄴ", "n"},
@@ -336,6 +342,12 @@ namespace OpenUtau.Plugin.Builtin {
 				} else if (nextLyric[0] != "ㅇ") { // V C & C C 구현
 					var nextConsonant = Config.firstConsonants[nextLyric[0]];
 					var prefix = "";
+
+					var overrideVC = Config.overrideVC.FirstOrDefault(e => e.Value.Contains(nextLyric[0])).Key;
+					if (overrideVC != null) {
+						nextConsonant = overrideVC;
+					}
+
 					if (thisLyric[2] != " " && !NOT_USE_CC_BATCHIMS.Contains(thisLyric[2])) {
 						prefix = Config.lastConsonants[thisLyric[2]][0].ToUpper();
 					} else if (thisLyric[2] == " ") {
