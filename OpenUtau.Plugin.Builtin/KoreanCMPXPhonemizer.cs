@@ -132,10 +132,20 @@ namespace OpenUtau.Plugin.Builtin {
 						{" ", new string[]{"", ""}},
 						{"null", new string[]{"", ""}},
 		};
+
+		[YamlIgnore]
+		public Dictionary<string, string> vowels {
+			get {
+				return middleShortVowels.Concat(middleDiphthongVowels.ToDictionary(g => g.Key, g => g.Value[0])).ToDictionary(g => g.Key, g => g.Value);
+			}
+		}
 	}
 
 	[Phonemizer("Korean CMPX Phonemizer", "KO CMPX", "2xxbin", language: "KO")]
 	public class KoreanCMPXPhonemizer : BaseKoreanPhonemizer {
+
+		private static readonly string[] USE_CC_BATCHIMS = {"ㄴ", "ㄵ", "ㄶ", "ㄹ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㅀ", "ㅁ", "ㅇ"};
+		private static readonly string[] NOT_USE_CC_BATCHIMS = {"ㄱ", "ㄲ", "ㄳ", "ㄷ", "ㄺ", "ㄿ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅎ"};
 		private KoreanCMPXConfigYAML Config;
 
 		private void CreateConfigFile(string path) {
@@ -234,7 +244,7 @@ namespace OpenUtau.Plugin.Builtin {
 			var vowel = getVowel(thisLyric);
 
 			// 어두 에일리어스 구현
-			if (prevLyric[0] == "null" || HARD_BATCHIMS.Contains(prevLyric[2])) {
+			if (prevLyric[0] == "null" || NOT_USE_CC_BATCHIMS.Contains(prevLyric[2])) {
 				var phoneme = "";
 				var position = 0;
 
@@ -267,7 +277,7 @@ namespace OpenUtau.Plugin.Builtin {
 				var phoneme = "";
 				var position = 0;
 				var consonant = Config.firstConsonants[thisLyric[0]];
-				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0])) {
+				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0]) && (prevLyric[0] == "null" || NOT_USE_CC_BATCHIMS.Contains(prevLyric[2]))) {
 					consonant = (string)Config.initalC[thisLyric[0]][0];
 				}
 				phoneme = $"{consonant}{vowel}";
@@ -301,14 +311,18 @@ namespace OpenUtau.Plugin.Builtin {
 				var lastConsonantPhoneme = $"_{singleVowel}{lastConsonant[0].ToUpper()}";
 				var lastConsonantPosition = totalDuration - Math.Min(totalDuration / 3, 120);
 
-				var CBNNVowelPhoneme = $"_{singleVowel}{lastConsonant[1]}";
-				var CBNNVowelPosition = 50;
+				if (lastConsonant[1] != "") {
+					var CBNNVowelPhoneme = $"_{singleVowel}{lastConsonant[1]}";
+					var CBNNVowelPosition = 50;
 
-				if (isNeedSemiVowel(thisLyric)) {
-					CBNNVowelPosition += Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
+					if (isNeedSemiVowel(thisLyric)) {
+						CBNNVowelPosition += Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
+					}
+
+					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(CBNNVowelPhoneme, note), position = CBNNVowelPosition });
 				}
 
-				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(CBNNVowelPhoneme, note), position = CBNNVowelPosition }, new Phoneme { phoneme = FindInOto(lastConsonantPhoneme, note), position = lastConsonantPosition });
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(lastConsonantPhoneme, note), position = lastConsonantPosition });
 			}
 
 			// 다음 노트가 있을 경우
@@ -319,10 +333,10 @@ namespace OpenUtau.Plugin.Builtin {
 					var position = totalDuration - Config.semiVowelLength[Config.middleDiphthongVowels[nextLyric[1]][2]];
 
 					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
-				} else { // V C & C C 구현
+				} else if (nextLyric[0] != "ㅇ") { // V C & C C 구현
 					var nextConsonant = Config.firstConsonants[nextLyric[0]];
 					var prefix = "";
-					if (thisLyric[2] != " " && !HARD_BATCHIMS.Contains(thisLyric[2])) {
+					if (thisLyric[2] != " " && !NOT_USE_CC_BATCHIMS.Contains(thisLyric[2])) {
 						prefix = Config.lastConsonants[thisLyric[2]][0].ToUpper();
 					} else if (thisLyric[2] == " ") {
 						prefix = GetSingleVowel(thisLyric[1]);
