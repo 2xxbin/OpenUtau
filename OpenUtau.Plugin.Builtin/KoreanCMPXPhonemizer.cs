@@ -323,16 +323,18 @@ namespace OpenUtau.Plugin.Builtin {
 				} else { // V C & C C 구현
 					var nextConsonant = Config.firstConsonants[nextLyric[0]];
 					var prefix = "";
-					if (thisLyric[2] != " ") {
+					if (thisLyric[2] != " " && !HARD_BATCHIMS.Contains(thisLyric[2])) {
 						prefix = Config.lastConsonants[thisLyric[2]][0].ToUpper();
-					} else {
+					} else if (thisLyric[2] == " ") {
 						prefix = GetSingleVowel(thisLyric[1]);
 					}
 
-					var phoneme = $"{prefix} {nextConsonant}";
-					var position = GetVCPosition(nextLyric[0], totalDuration);
+					if (prefix != "") {
+						var phoneme = $"{prefix} {nextConsonant}";
+						var position = GetVCPosition(nextLyric[0], totalDuration);
 
-					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = totalDuration - position });
+						phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = totalDuration - position });
+					}
 				}
 			}
 
