@@ -466,14 +466,14 @@ namespace OpenUtau.Plugin.Builtin {
 			} else {
 				lyrics = new Hashtable() { [0] = "null", [1] = "null", [2] = "null", [3] = "null", [4] = "null", [5] = "null", [6] = "null", [7] = "null", [8] = "null", };
 
-				if (prevNeighbour != null && !IsForeignPhoneme(((Note)prevNeighbour).lyric)) {
+				if (prevNeighbour != null && !IsForeignPhoneme(((Note)prevNeighbour).lyric) && !Config.endPhoneme.Contains(((Note)prevNeighbour).lyric)) {
 					Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)prevNeighbour, null);
 					lyrics[0] = (string) t[3];
 					lyrics[1] = (string) t[4];
 					lyrics[2] = (string) t[5];
 				}
 
-				if (nextNeighbour != null && !IsForeignPhoneme(((Note)nextNeighbour).lyric)) {
+				if (nextNeighbour != null && !IsForeignPhoneme(((Note)nextNeighbour).lyric) && !Config.endPhoneme.Contains(((Note)nextNeighbour).lyric)) {
 					Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)nextNeighbour, null);
 					lyrics[6] = (string) t[3];
 					lyrics[7] = (string) t[4];
