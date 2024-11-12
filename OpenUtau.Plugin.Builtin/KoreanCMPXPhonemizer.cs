@@ -98,7 +98,7 @@ namespace OpenUtau.Plugin.Builtin {
 			{"ㅠ", new string[4]{"yu", "_Yu", "Y", "u"}},
 			{"ㅖ", new string[4]{"ye", "_Ye", "Y", "e"}},
 			{"ㅒ", new string[4]{"ye", "_Ye", "Y", "e"}},
-			{"ㅘ", new string[4]{"wa", "_Wa", "W", "wa"}},
+			{"ㅘ", new string[4]{"wa", "_Wa", "W", "a"}},
 			{"ㅟ", new string[4]{"wi", "_Wi", "W", "i"}},
 			{"ㅝ", new string[4]{"wo", "_Wo", "W", "eo"}},
 			{"ㅙ", new string[4]{"we", "_We", "W", "e"}},
@@ -260,6 +260,8 @@ namespace OpenUtau.Plugin.Builtin {
 				} else if (thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1])) { // - SV
 					phoneme = $"- {Config.middleDiphthongVowels[thisLyric[1]][2]}";
 					position = -Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
+					isNeedV = true;
+					isNeedCV = false;
 				} else if (thisLyric[0] == "ㅇ" && Config.middleShortVowels.ContainsKey(thisLyric[1])) { // - V
 					phoneme = $"- {Config.middleShortVowels[thisLyric[1]]}";
 					isNeedCV = false;
@@ -293,15 +295,6 @@ namespace OpenUtau.Plugin.Builtin {
 				}
 				phoneme = $"{consonant}{vowel}";
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
-
-				if (isNeedSemiVowel(thisLyric)) { 
-					// 만약 반모음이라면
-					// 맞춰서 이중모음 추가
-					// 포지션은 설정한 이중모음 길이만큼 밀림
-					phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}";
-					position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
-					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
-				}
 			} else if (isNeedV) { // VV 구현
 				var phoneme = "";
 
@@ -312,6 +305,15 @@ namespace OpenUtau.Plugin.Builtin {
 					phoneme = $"{GetSingleVowel(prevLyric[1])} {Config.middleShortVowels[thisLyric[1]]}";
 				}
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note) });
+			}
+
+			if (isNeedSemiVowel(thisLyric) && !isNeedV && !(thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1]))) { 
+				// 만약 반모음이라면
+				// 맞춰서 이중모음 추가
+				// 포지션은 설정한 이중모음 길이만큼 밀림
+				var phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}";
+				var position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
 			}
 
 			// 받침 구현
