@@ -1,8 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Security.Policy;
 using OpenUtau.Api;
 using OpenUtau.Core;
 using OpenUtau.Core.Ustx;
@@ -145,13 +147,30 @@ namespace OpenUtau.Plugin.Builtin {
 				return middleShortVowels.Concat(middleDiphthongVowels.ToDictionary(g => g.Key, g => g.Value[0])).ToDictionary(g => g.Key, g => g.Value);
 			}
 		}
+
+		[YamlIgnore]
+		public Dictionary<string, string[]> foreignPhonemes {
+			get {
+				Dictionary<string, string[]> returnDict = new Dictionary<string, string[]> { };
+				foreach (var foreignConsonant in firstForeignConsonants) {
+					foreach (var shortVowel in middleShortVowels) {
+						returnDict[$"{foreignConsonant}{shortVowel.Value}"] = new string[] { foreignConsonant, shortVowel.Key };
+					}
+					foreach (var diphthongVowel in middleDiphthongVowels) {
+						returnDict[$"{foreignConsonant}{diphthongVowel.Value[0]}"] = new string[] { foreignConsonant, diphthongVowel.Key };
+					}
+				}
+
+				return returnDict;
+			}
+		}
 	}
 
 	[Phonemizer("Korean CMPX Phonemizer", "KO CMPX", "2xxbin", language: "KO")]
 	public class KoreanCMPXPhonemizer : BaseKoreanPhonemizer {
 
-		private static readonly string[] USE_CC_BATCHIMS = {"ㄴ", "ㄵ", "ㄶ", "ㄹ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㅀ", "ㅁ", "ㅇ"};
-		private static readonly string[] NOT_USE_CC_BATCHIMS = {"ㄱ", "ㄲ", "ㄳ", "ㄷ", "ㄺ", "ㄿ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅎ"};
+		private static readonly string[] USE_CC_BATCHIMS = { "ㄴ", "ㄵ", "ㄶ", "ㄹ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㅀ", "ㅁ", "ㅇ" };
+		private static readonly string[] NOT_USE_CC_BATCHIMS = { "ㄱ", "ㄲ", "ㄳ", "ㄷ", "ㄺ", "ㄿ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅎ" };
 		private KoreanCMPXConfigYAML Config;
 
 		private void CreateConfigFile(string path) {
@@ -185,6 +204,20 @@ namespace OpenUtau.Plugin.Builtin {
 			}
 
 			this.singer = singer;
+		}
+
+
+		private bool IsForeignPhoneme(string phoneme) {
+			var isForeignPhoneme = false;
+			if (Config.firstForeignConsonants.Any(consonant => phoneme.StartsWith(consonant))) {
+				isForeignPhoneme = true;
+			}
+
+			return isForeignPhoneme;
+		}
+
+		protected override bool additionalTest(string lyric) {
+			return IsForeignPhoneme(lyric);
 		}
 
 		private class FlowStyleIntegerSequences : ChainedEventEmitter {
@@ -284,10 +317,20 @@ namespace OpenUtau.Plugin.Builtin {
 				// 가 -> ga / 갸 -> gY
 				var phoneme = "";
 				var position = 0;
-				var consonant = Config.firstConsonants[thisLyric[0]];
+				var consonant = "";
+
+				if (Config.isUseForeignConsonants && Config.firstForeignConsonants.Contains(thisLyric[0])) {
+					consonant = thisLyric[0];
+				} else {
+					consonant = Config.firstConsonants[thisLyric[0]];
+				}
 
 				if (Config.isUseNGC && (prevLyric[2] == "ㅇ" && thisLyric[0] == "ㅇ")) {
 					consonant = "ng";
+				}
+
+				if (prevLyric[2] == "ㄹ" && thisLyric[0] == "ㄹ") {
+					consonant = "l";
 				}
 
 				if (Config.isUseInitalC && Config.initalC.ContainsKey(thisLyric[0]) && (prevLyric[0] == "null" || NOT_USE_CC_BATCHIMS.Contains(prevLyric[2]))) {
@@ -307,7 +350,7 @@ namespace OpenUtau.Plugin.Builtin {
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note) });
 			}
 
-			if (isNeedSemiVowel(thisLyric) && !isNeedV && !(thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1]))) { 
+			if (isNeedSemiVowel(thisLyric) && !isNeedV && !(thisLyric[0] == "ㅇ" && Config.middleDiphthongVowels.ContainsKey(thisLyric[1]))) {
 				// 만약 반모음이라면
 				// 맞춰서 이중모음 추가
 				// 포지션은 설정한 이중모음 길이만큼 밀림
@@ -347,8 +390,14 @@ namespace OpenUtau.Plugin.Builtin {
 
 					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
 				} else if (nextLyric[0] != "ㅇ") { // V C & C C 구현
-					var nextConsonant = Config.firstConsonants[nextLyric[0]];
+					var nextConsonant = "";
 					var prefix = "";
+
+					if (Config.isUseForeignConsonants && Config.firstForeignConsonants.Contains(nextLyric[0])) {
+						nextConsonant = nextLyric[0];
+					} else {
+						nextConsonant = Config.firstConsonants[nextLyric[0]];
+					}
 
 					var overrideVC = Config.overrideVC.FirstOrDefault(e => e.Value.Contains(nextLyric[0])).Key;
 					if (overrideVC != null) {
@@ -370,32 +419,82 @@ namespace OpenUtau.Plugin.Builtin {
 				}
 			}
 
-
-
-
 			return new Result() {
 				phonemes = phonemes
 			};
 		}
 
+		private string[] ConvertForeignLyric(string lyric) {
+			var phoneme = Config.foreignPhonemes.FirstOrDefault(phoneme => lyric.StartsWith(phoneme.Key));
+			var batchimRomaji = lyric.Replace(phoneme.Key, "");
+			var batchim = Config.lastConsonants.FirstOrDefault(lastConsonant => lastConsonant.Value[0] == batchimRomaji).Key ?? " ";
+				
+			return new string[] { phoneme.Value[0], phoneme.Value[1], batchim };
+		}
+
 		public override Result ConvertPhonemes(Note[] notes, Note? prev, Note? next, Note? prevNeighbour, Note? nextNeighbour, Note[] prevNeighbours) {
 			var note = notes[0];
 
-			var lyrics = KoreanPhonemizerUtil.Variate(prevNeighbour, note, nextNeighbour);
+			var prevNoteIsForeignPhoneme = false;
+			var thisNoteIsForeignPhoneme = false;
+			var nextNoteIsForeignPhoneme = false;
+
+			string[] prevLyricTemp = {};
+			string[] thisLyricTemp = {};
+			string[] nextLyricTemp = {};
+
+			// 외국어 자음일때
+			if(prev != null && IsForeignPhoneme(((Note)prev).lyric)) { // 이전 노트
+				prevNoteIsForeignPhoneme = true;
+				prevLyricTemp = ConvertForeignLyric(((Note)prev).lyric);
+			}
+
+			if (IsForeignPhoneme(note.lyric)) { // 현재 노트
+				thisNoteIsForeignPhoneme = true;
+				thisLyricTemp = ConvertForeignLyric(note.lyric);
+			}
+
+			if(next != null && IsForeignPhoneme(((Note)next).lyric)) { // 다음 노트
+				nextNoteIsForeignPhoneme = true;
+				nextLyricTemp = ConvertForeignLyric(((Note)next).lyric);
+			}
+
+			
+			Hashtable lyrics;
+			if (KoreanPhonemizerUtil.IsHangeul(note.lyric)) {
+				lyrics = KoreanPhonemizerUtil.Variate(prevNeighbour, note, nextNeighbour);
+			} else {
+				lyrics = new Hashtable() { [0] = "null", [1] = "null", [2] = "null", [3] = "null", [4] = "null", [5] = "null", [6] = "null", [7] = "null", [8] = "null", };
+
+				if (prevNeighbour != null && !IsForeignPhoneme(((Note)prevNeighbour).lyric)) {
+					Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)prevNeighbour, null);
+					lyrics[0] = (string) t[3];
+					lyrics[1] = (string) t[4];
+					lyrics[2] = (string) t[5];
+				}
+
+				if (nextNeighbour != null && !IsForeignPhoneme(((Note)nextNeighbour).lyric)) {
+					Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)nextNeighbour, null);
+					lyrics[6] = (string) t[3];
+					lyrics[7] = (string) t[4];
+					lyrics[8] = (string) t[5];
+				}
+			}
+
 			string[] prevLyric = new string[] {
-				(string) lyrics[0],
-				(string) lyrics[1],
-				(string) lyrics[2],
+				prevNoteIsForeignPhoneme ? prevLyricTemp[0] : (string) lyrics[0],
+				prevNoteIsForeignPhoneme ? prevLyricTemp[1] : (string) lyrics[1],
+				prevNoteIsForeignPhoneme ? prevLyricTemp[2] : (string) lyrics[2],
 			};
 			string[] thisLyric = new string[] {
-				(string) lyrics[3],
-				(string) lyrics[4],
-				(string) lyrics[5],
+				thisNoteIsForeignPhoneme ? thisLyricTemp[0] : (string) lyrics[3],
+				thisNoteIsForeignPhoneme ? thisLyricTemp[1] : (string) lyrics[4],
+				thisNoteIsForeignPhoneme ? thisLyricTemp[2] : (string) lyrics[5],
 			};
 			string[] nextLyric = new string[] {
-				(string) lyrics[6],
-				(string) lyrics[7],
-				(string) lyrics[8],
+				nextNoteIsForeignPhoneme ? nextLyricTemp[0] : (string) lyrics[6],
+				nextNoteIsForeignPhoneme ? nextLyricTemp[1] : (string) lyrics[7],
+				nextNoteIsForeignPhoneme ? nextLyricTemp[2] : (string) lyrics[8],
 			};
 
 			if (thisLyric[0] == "null") {
@@ -422,10 +521,9 @@ namespace OpenUtau.Plugin.Builtin {
 			var phonemes = new Phoneme[] { };
 			var note = notes[0];
 
-			if (prevNeighbour == null) { return new Result() { phonemes = new Phoneme[] { new Phoneme { phoneme = FindInOto(note.lyric, note) } } }; }
 
 			// 만약 노트의 가사가 어미숨 음소라면
-			if (Config.endPhoneme.Contains(note.lyric)) {
+			if (Config.endPhoneme.Contains(note.lyric) && prevNeighbour != null) {
 				var prevLyrics = KoreanPhonemizerUtil.Separate(((Note)prevNeighbour).lyric);
 				var prevLyric = new string[] {
 					(string) prevLyrics[0],
