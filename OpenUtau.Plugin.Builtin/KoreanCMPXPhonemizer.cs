@@ -445,7 +445,7 @@ namespace OpenUtau.Plugin.Builtin {
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = phoneme });
 
 			} else {
-				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(note.lyric, note) });
+				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = "ERROR" });
 			}
 
 
