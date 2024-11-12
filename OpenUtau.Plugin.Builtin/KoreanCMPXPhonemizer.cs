@@ -361,7 +361,7 @@ namespace OpenUtau.Plugin.Builtin {
 						prefix = GetSingleVowel(thisLyric[1]);
 					}
 
-					if (prefix != "") {
+					if (prefix != "" && !(prefix == "L" && nextConsonant == "r")) {
 						var phoneme = $"{prefix} {nextConsonant}";
 						var position = GetVCPosition(nextLyric[0], totalDuration);
 
