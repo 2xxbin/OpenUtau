@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Policy;
 using OpenUtau.Api;
 using OpenUtau.Core;
 using OpenUtau.Core.Ustx;
@@ -278,7 +276,7 @@ namespace OpenUtau.Plugin.Builtin {
 		private int GetVCPosition(string consonant, int totalDuration) {
 			var vcLength = 60;
 
-			if (consonant == "ㄹ" || consonant == "ㅎ") { vcLength = 30; } else if (consonant == "ㅅ") { vcLength = totalDuration / 3; } else if (KoreanPhonemizerUtil.aspirateSounds.ContainsValue(consonant) || KoreanPhonemizerUtil.fortisSounds.ContainsValue(consonant)) { vcLength = totalDuration / 2; }
+			if (consonant == "ㄹ" || consonant == "ㅎ") { vcLength = 30; } else if (consonant == "ㅅ" || consonant == "ㅆ") { vcLength = totalDuration / 3; } else if (KoreanPhonemizerUtil.aspirateSounds.ContainsValue(consonant) || KoreanPhonemizerUtil.fortisSounds.ContainsValue(consonant)) { vcLength = totalDuration / 3; }
 
 			return Math.Min(totalDuration / 2, vcLength);
 		}
@@ -376,7 +374,18 @@ namespace OpenUtau.Plugin.Builtin {
 				var lastConsonant = Config.lastConsonants[thisLyric[2]];
 
 				var lastConsonantPhoneme = $"_{singleVowel}{lastConsonant[0].ToUpper()}";
-				var lastConsonantPosition = totalDuration - Math.Min(totalDuration / 3, 120);
+				var lastConsonantPosition = 0;
+				if (USE_CC_BATCHIMS.Contains(thisLyric[2])) {
+					if (nextLyric[0] != "null" && (KoreanPhonemizerUtil.fortisSounds.ContainsValue(nextLyric[0]) || KoreanPhonemizerUtil.aspirateSounds.ContainsValue(nextLyric[0]))) {
+						lastConsonantPosition = totalDuration / 3;
+					} else {
+						lastConsonantPosition = totalDuration / 2;
+					}
+				} else if (NOT_USE_CC_BATCHIMS.Contains(thisLyric[2])) {
+					lastConsonantPosition = totalDuration / 2;
+				} else {
+					lastConsonantPosition = Math.Min(totalDuration / 3, 120);
+				}
 
 				if (lastConsonant[1] != "") {
 					var CBNNVowelPhoneme = $"_{singleVowel}{lastConsonant[1]}";
