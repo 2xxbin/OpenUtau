@@ -237,6 +237,17 @@ namespace OpenUtau.Plugin.Builtin {
 			return BaseKoreanPhonemizer.FindInOto(this.singer, phoneme, note, false);
 		}
 
+		private bool IsExistAliasinOto(string phoneme, Note note) {
+			var isExistAliasinOto = true;
+			var a = BaseKoreanPhonemizer.FindInOto(this.singer, phoneme, note, true);
+
+			if (a == null) {
+				isExistAliasinOto = false;
+			}
+
+			return isExistAliasinOto;
+		}
+
 		private Phoneme[] AddPhoneme(Phoneme[] phonemes, params Phoneme[] addPhonemes) {
 			return phonemes.Concat(addPhonemes).ToArray();
 		}
@@ -414,7 +425,9 @@ namespace OpenUtau.Plugin.Builtin {
 						var phoneme = $"{prefix} {nextConsonant}";
 						var position = GetVCPosition(nextLyric[0], totalDuration);
 
-						phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = totalDuration - position });
+						if (IsExistAliasinOto(phoneme, note)) {
+							phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = totalDuration - position });
+						}
 					}
 				}
 			}
