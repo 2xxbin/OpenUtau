@@ -109,34 +109,38 @@ namespace OpenUtau.Plugin.Builtin {
 
 		public Dictionary<string, string[]> lastConsonants = new Dictionary<string, string[]>() {
 			{"ㄱ", new string[]{"k", ""}},
-						{"ㄲ", new string[]{"k", ""}},
-						{"ㄳ", new string[]{"k", ""}},
-						{"ㄴ", new string[]{"n", "2"}},
-						{"ㄵ", new string[]{"n", "2"}},
-						{"ㄶ", new string[]{"n", "2"}},
-						{"ㄷ", new string[]{"t", "1"}},
-						{"ㄹ", new string[]{"l", "4"}},
-						{"ㄺ", new string[]{"k", ""}},
-						{"ㄻ", new string[]{"m", "1"}},
-						{"ㄼ", new string[]{"l", "4"}},
-						{"ㄽ", new string[]{"l", "4"}},
-						{"ㄾ", new string[]{"l", "4"}},
-						{"ㄿ", new string[]{"p", "1"}},
-						{"ㅀ", new string[]{"l", "4"}},
-						{"ㅁ", new string[]{"m", "1"}},
-						{"ㅂ", new string[]{"p", "1"}},
-						{"ㅄ", new string[]{"p", "1"}},
-						{"ㅅ", new string[]{"t", "1"}},
-						{"ㅆ", new string[]{"t", "1"}},
-						{"ㅇ", new string[]{"ng", "3"}},
-						{"ㅈ", new string[]{"t", "1"}},
-						{"ㅊ", new string[]{"t", "1"}},
-						{"ㅋ", new string[]{"k", ""}},
-						{"ㅌ", new string[]{"t", "1"}},
-						{"ㅍ", new string[]{"p", "1"}},
-						{"ㅎ", new string[]{"t", "1"}},
-						{" ", new string[]{"", ""}},
-						{"null", new string[]{"", ""}},
+			{"ㄲ", new string[]{"k", ""}},
+			{"ㄳ", new string[]{"k", ""}},
+			{"ㄴ", new string[]{"n", "2"}},
+			{"ㄵ", new string[]{"n", "2"}},
+			{"ㄶ", new string[]{"n", "2"}},
+			{"ㄷ", new string[]{"t", "1"}},
+			{"ㄹ", new string[]{"l", "4"}},
+			{"ㄺ", new string[]{"k", ""}},
+			{"ㄻ", new string[]{"m", "1"}},
+			{"ㄼ", new string[]{"l", "4"}},
+			{"ㄽ", new string[]{"l", "4"}},
+			{"ㄾ", new string[]{"l", "4"}},
+			{"ㄿ", new string[]{"p", "1"}},
+			{"ㅀ", new string[]{"l", "4"}},
+			{"ㅁ", new string[]{"m", "1"}},
+			{"ㅂ", new string[]{"p", "1"}},
+			{"ㅄ", new string[]{"p", "1"}},
+			{"ㅅ", new string[]{"t", "1"}},
+			{"ㅆ", new string[]{"t", "1"}},
+			{"ㅇ", new string[]{"ng", "3"}},
+			{"ㅈ", new string[]{"t", "1"}},
+			{"ㅊ", new string[]{"t", "1"}},
+			{"ㅋ", new string[]{"k", ""}},
+			{"ㅌ", new string[]{"t", "1"}},
+			{"ㅍ", new string[]{"p", "1"}},
+			{"ㅎ", new string[]{"t", "1"}},
+			{" ", new string[]{"", ""}},
+			{"null", new string[]{"", ""}},
+		};
+
+		public Dictionary<string, string[]> foreignLastConsonants = new Dictionary<string, string[]> {
+			{"er", new string[]{"er", "4"}}
 		};
 
 		[YamlIgnore]
@@ -220,8 +224,17 @@ namespace OpenUtau.Plugin.Builtin {
 			return isForeignPhoneme;
 		}
 
+		private bool IsForeginLastConsonant(string phoneme) {
+			var isForeignLastConsonant = false;
+			if(Config.foreignLastConsonants.Any(lastConsonant => phoneme.EndsWith(lastConsonant.Value[0]))) {
+				isForeignLastConsonant = true;
+			}
+
+			return isForeignLastConsonant;
+		}
+
 		protected override bool additionalTest(string lyric) {
-			return IsForeignPhoneme(lyric);
+			return IsForeignPhoneme(lyric) || IsForeginLastConsonant(lyric);
 		}
 
 		private class FlowStyleIntegerSequences : ChainedEventEmitter {
@@ -454,6 +467,10 @@ namespace OpenUtau.Plugin.Builtin {
 
 		private string[] ConvertForeignLyric(string lyric) {
 			var batchim = Config.lastConsonants.FirstOrDefault(lastConsonant => lyric.EndsWith(lastConsonant.Value[0])).Key ?? " ";
+			if (batchim == " " && IsForeginLastConsonant(lyric)) {
+				batchim = Config.foreignLastConsonants.FirstOrDefault(lastConsonant => lyric.EndsWith(lastConsonant.Value[0])).Key ?? " ";
+			}
+
 			lyric = lyric.Replace(batchim, "");
 			var phoneme = Config.foreignPhonemes.FirstOrDefault(phoneme => lyric.StartsWith(phoneme.Key));
 				
@@ -486,6 +503,7 @@ namespace OpenUtau.Plugin.Builtin {
 				nextNoteIsForeignPhoneme = true;
 				nextLyricTemp = ConvertForeignLyric(((Note)next).lyric);
 			}
+			
 
 			
 			Hashtable lyrics;
