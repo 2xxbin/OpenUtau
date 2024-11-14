@@ -152,14 +152,20 @@ namespace OpenUtau.Plugin.Builtin {
 				Dictionary<string, string[]> returnDict = new Dictionary<string, string[]> { };
 				foreach (var foreignConsonant in firstForeignConsonants) {
 					foreach (var shortVowel in middleShortVowels) {
-						returnDict[$"{foreignConsonant}{shortVowel.Value}"] = new string[] { foreignConsonant, shortVowel.Key };
+						var index = $"{foreignConsonant}{shortVowel.Value}";
+						if (!returnDict.ContainsKey(index)) {
+							returnDict.Add(index, new string[] { foreignConsonant, shortVowel.Key });
+						}
 					}
 					foreach (var diphthongVowel in middleDiphthongVowels) {
-						returnDict[$"{foreignConsonant}{diphthongVowel.Value[0]}"] = new string[] { foreignConsonant, diphthongVowel.Key };
+						var index = $"{foreignConsonant}{diphthongVowel.Value[0]}";
+						if (!returnDict.ContainsKey(index)) {
+							returnDict.Add(index, new string[] { foreignConsonant, diphthongVowel.Key });
+						}
 					}
 				}
 
-				return returnDict;
+				return returnDict.OrderByDescending(item => item.Key).ToDictionary(dict => dict.Key, dict => dict.Value);
 			}
 		}
 	}
@@ -447,9 +453,9 @@ namespace OpenUtau.Plugin.Builtin {
 		}
 
 		private string[] ConvertForeignLyric(string lyric) {
+			var batchim = Config.lastConsonants.FirstOrDefault(lastConsonant => lyric.EndsWith(lastConsonant.Value[0])).Key ?? " ";
+			lyric = lyric.Replace(batchim, "");
 			var phoneme = Config.foreignPhonemes.FirstOrDefault(phoneme => lyric.StartsWith(phoneme.Key));
-			var batchimRomaji = lyric.Replace(phoneme.Key, "");
-			var batchim = Config.lastConsonants.FirstOrDefault(lastConsonant => lastConsonant.Value[0] == batchimRomaji).Key ?? " ";
 				
 			return new string[] { phoneme.Value[0], phoneme.Value[1], batchim };
 		}
@@ -496,10 +502,14 @@ namespace OpenUtau.Plugin.Builtin {
 				}
 
 				if (nextNeighbour != null && !IsForeignPhoneme(((Note)nextNeighbour).lyric) && !Config.endPhoneme.Contains(((Note)nextNeighbour).lyric)) {
-					Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)nextNeighbour, null);
-					lyrics[6] = (string) t[3];
-					lyrics[7] = (string) t[4];
-					lyrics[8] = (string) t[5];
+					try {
+						Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)nextNeighbour, null);
+						lyrics[6] = (string) t[3];
+						lyrics[7] = (string) t[4];
+						lyrics[8] = (string) t[5];
+					} catch (Exception e) {
+						Log.Debug($"nextNeighbour Error : {e.Message} / {((Note)nextNeighbour).lyric}");
+					}
 				}
 			}
 
@@ -546,7 +556,19 @@ namespace OpenUtau.Plugin.Builtin {
 
 			// 만약 노트의 가사가 어미숨 음소라면
 			if (Config.endPhoneme.Contains(note.lyric) && prevNeighbour != null) {
-				var prevLyrics = KoreanPhonemizerUtil.Separate(((Note)prevNeighbour).lyric);
+				var prevNote = (Note)prevNeighbour;
+				var prevLyrics = new Hashtable {};
+				
+				if (IsForeignPhoneme(prevNote.lyric)) {
+					var tempPrevLyrics = ConvertForeignLyric(prevNote.lyric);
+					prevLyrics[0] = tempPrevLyrics[0];
+					prevLyrics[1] = tempPrevLyrics[1];
+					prevLyrics[2] = tempPrevLyrics[2];
+				} else {
+					prevLyrics = KoreanPhonemizerUtil.Separate(prevNote.lyric);
+				}
+
+
 				var prevLyric = new string[] {
 					(string) prevLyrics[0],
 					(string) prevLyrics[1],
