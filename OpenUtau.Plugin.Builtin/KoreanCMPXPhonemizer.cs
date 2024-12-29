@@ -1,18 +1,20 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using OpenUtau.Api;
 using OpenUtau.Core;
 using OpenUtau.Core.Ustx;
 using Serilog;
+using SharpGen.Runtime.Win32;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
 
 namespace OpenUtau.Plugin.Builtin {
-	[Serializable]
+    [Serializable]
 	public class KoreanCMPXConfigYAML {
 		public bool isUseInitalC = true;
 
@@ -23,7 +25,10 @@ namespace OpenUtau.Plugin.Builtin {
 		public bool isUseNGC = true;
 		public bool isUseForeignConsonants = true;
 
-		public Dictionary<string, object[]> initalC = new Dictionary<string, object[]>() {
+
+        
+
+        public Dictionary<string, object[]> initalC = new Dictionary<string, object[]>() {
 			{"ㄴ", new object[]{"n", 25}},
 			{"ㅁ", new object[]{"m", 25}},
 			{"ㄹ", new object[]{"l", 25}},
@@ -80,7 +85,8 @@ namespace OpenUtau.Plugin.Builtin {
 			{"null", ""},
 		};
 
-		public Dictionary<string, string> middleShortVowels = new Dictionary<string, string>() {
+
+        public Dictionary<string, string> middleShortVowels = new Dictionary<string, string>() {
 			{"ㅏ", "a"},
 			{"ㅣ", "i"},
 			{"ㅜ", "u"},
@@ -143,10 +149,30 @@ namespace OpenUtau.Plugin.Builtin {
 			{"er", new string[]{"er", "4"}}
 		};
 
-		[YamlIgnore]
+        [YamlIgnore]
+        public readonly Dictionary<string, string> CompiledFirstConsonants;
+        [YamlIgnore]
+        public readonly Dictionary<string, string[]> CompiledLastConsonants;
+
+        public KoreanCMPXConfigYAML() {
+            // merges user custom foreign dictionary with user custom korean dictionary
+            Dictionary<string, string> firstcons = this.firstConsonants;
+            this.firstForeignConsonants.ToList().ForEach(x => firstcons.Add(x, x));
+
+            Dictionary<string, string[]> lastcons = this.lastConsonants;
+            this.foreignLastConsonants.ToList().ForEach(x => lastcons.Add(x.Key, x.Value));
+
+            CompiledFirstConsonants = firstcons;
+            CompiledLastConsonants = lastcons;
+
+        }
+
+        [YamlIgnore]
 		public Dictionary<string, string> vowels {
 			get {
-				return middleShortVowels.Concat(middleDiphthongVowels.ToDictionary(g => g.Key, g => g.Value[0])).ToDictionary(g => g.Key, g => g.Value);
+				return middleShortVowels.Concat(
+                    middleDiphthongVowels.ToDictionary(g => g.Key, g => g.Value[0]))
+                    .ToDictionary(g => g.Key, g => g.Value);
 			}
 		}
 
@@ -192,17 +218,22 @@ namespace OpenUtau.Plugin.Builtin {
 			try {
 				var deserializer = new DeserializerBuilder().Build();
 				this.Config = deserializer.Deserialize<KoreanCMPXConfigYAML>(File.ReadAllText(path));
-			} catch (Exception e) {
+			} 
+            catch (Exception e) 
+            {
 				Log.Error(e, $"Fail to local 'kocmpx.yaml' (path: '{path}')");
-				try {
+				try 
+                {
 					CreateConfigFile(path);
-				} catch (Exception e2) {
+				} 
+                catch (Exception e2) {
 					Log.Error(e2, "Fail to create 'kocmpx.yaml'");
 				}
 			}
 		}
 
-		public override void SetSinger(USinger singer) {
+		public override void SetSinger(USinger singer) 
+            {
 			if (this.singer == singer || singer == null || singer.SingerType != USingerType.Classic) { return; }
 
 			LoadConfigYaml(Path.Join(singer.Location, "kocmpx.yaml"));
@@ -215,14 +246,15 @@ namespace OpenUtau.Plugin.Builtin {
 		}
 
 
-		private bool IsForeignPhoneme(string phoneme) {
-			var isForeignPhoneme = false;
-			if (Config.firstForeignConsonants.Any(consonant => phoneme.StartsWith(consonant))) {
-				isForeignPhoneme = true;
-			}
+		private bool IsForeignPhoneme(string phoneme) {             
+            var isForeignPhoneme = false;
+            if (Config.firstForeignConsonants.Any(consonant => phoneme.StartsWith(consonant))) {
+                isForeignPhoneme = true;
+            }
 
-			return isForeignPhoneme;
-		}
+
+            return isForeignPhoneme;
+        }
 
 		private bool IsForeginLastConsonant(string phoneme) {
 			var isForeignLastConsonant = false;
@@ -234,7 +266,8 @@ namespace OpenUtau.Plugin.Builtin {
 		}
 
 		protected override bool additionalTest(string lyric) {
-			return IsForeignPhoneme(lyric) || IsForeginLastConsonant(lyric);
+            bool res = IsForeignPhoneme(lyric) || IsForeginLastConsonant(lyric);
+            return res;
 		}
 
 		private class FlowStyleIntegerSequences : ChainedEventEmitter {
@@ -295,7 +328,15 @@ namespace OpenUtau.Plugin.Builtin {
 		private int GetVCPosition(string consonant, int totalDuration) {
 			var vcLength = 60;
 
-			if (consonant == "ㄹ" || consonant == "ㅎ") { vcLength = 30; } else if (consonant == "ㅅ" || consonant == "ㅆ") { vcLength = totalDuration / 3; } else if (KoreanPhonemizerUtil.aspirateSounds.ContainsValue(consonant) || KoreanPhonemizerUtil.fortisSounds.ContainsValue(consonant)) { vcLength = totalDuration / 3; }
+			if (consonant == "ㄹ" || consonant == "ㅎ") {
+                vcLength = 30; 
+            } 
+            else if (consonant == "ㅅ" || consonant == "ㅆ") {
+                vcLength = totalDuration / 3; 
+            } 
+            else if (KoreanPhonemizerUtil.aspirateSounds.ContainsValue(consonant) || KoreanPhonemizerUtil.fortisSounds.ContainsValue(consonant)) { 
+                vcLength = totalDuration / 3; 
+            }
 
 			return Math.Min(totalDuration / 2, vcLength);
 		}
@@ -350,7 +391,7 @@ namespace OpenUtau.Plugin.Builtin {
 				if (Config.isUseForeignConsonants && Config.firstForeignConsonants.Contains(thisLyric[0])) {
 					consonant = thisLyric[0];
 				} else {
-					consonant = Config.firstConsonants[thisLyric[0]];
+					consonant = Config.CompiledFirstConsonants[thisLyric[0]];
 				}
 
 				if (Config.isUseNGC && (prevLyric[2] == "ㅇ" && thisLyric[0] == "ㅇ")) {
@@ -383,6 +424,7 @@ namespace OpenUtau.Plugin.Builtin {
 				// 맞춰서 이중모음 추가
 				// 포지션은 설정한 이중모음 길이만큼 밀림
 				var phoneme = $"{Config.middleDiphthongVowels[thisLyric[1]][1]}";
+
 				var position = Config.semiVowelLength[Config.middleDiphthongVowels[thisLyric[1]][2]];
 				phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
 			}
@@ -390,7 +432,7 @@ namespace OpenUtau.Plugin.Builtin {
 			// 받침 구현
 			if (thisLyric[2] != " ") {
 				var singleVowel = GetSingleVowel(thisLyric[1]);
-				var lastConsonant = Config.lastConsonants[thisLyric[2]];
+				var lastConsonant = Config.CompiledLastConsonants[thisLyric[2]];
 
 				var lastConsonantPhoneme = $"_{singleVowel}{lastConsonant[0].ToUpper()}";
 				var lastConsonantPosition = 0;
@@ -422,20 +464,20 @@ namespace OpenUtau.Plugin.Builtin {
 
 			// 다음 노트가 있을 경우
 			if (nextLyric[0] != "null") {
-				// V sV 구현
+				// V sV + foreign lastC sV
 				if (isNeedVsV) {
 					var phoneme = $"{GetSingleVowel(thisLyric[1])} {Config.middleDiphthongVowels[nextLyric[1]][2].ToUpper()}";
 					var position = totalDuration - Config.semiVowelLength[Config.middleDiphthongVowels[nextLyric[1]][2]];
 
 					phonemes = AddPhoneme(phonemes, new Phoneme { phoneme = FindInOto(phoneme, note), position = position });
-				} else if (nextLyric[0] != "ㅇ") { // V C & C C 구현
+				} else if (nextLyric[0] != "ㅇ" || Config.foreignLastConsonants.ContainsKey(thisLyric[2])) { // V C & C C 구현
 					var nextConsonant = "";
 					var prefix = "";
 
 					if (Config.isUseForeignConsonants && Config.firstForeignConsonants.Contains(nextLyric[0])) {
 						nextConsonant = nextLyric[0];
 					} else {
-						nextConsonant = Config.firstConsonants[nextLyric[0]];
+						nextConsonant = Config.CompiledFirstConsonants[nextLyric[0]];
 					}
 
 					var overrideVC = Config.overrideVC.FirstOrDefault(e => e.Value.Contains(nextLyric[0])).Key;
@@ -444,7 +486,7 @@ namespace OpenUtau.Plugin.Builtin {
 					}
 
 					if (thisLyric[2] != " " && !NOT_USE_CC_BATCHIMS.Contains(thisLyric[2])) {
-						prefix = Config.lastConsonants[thisLyric[2]][0].ToUpper();
+						prefix = Config.CompiledLastConsonants[thisLyric[2]][0].ToUpper();
 					} else if (thisLyric[2] == " ") {
 						prefix = GetSingleVowel(thisLyric[1]);
 					}
@@ -465,97 +507,103 @@ namespace OpenUtau.Plugin.Builtin {
 			};
 		}
 
-		private string[] ConvertForeignLyric(string lyric) {
-			var batchim = Config.lastConsonants.FirstOrDefault(lastConsonant => lyric.EndsWith(lastConsonant.Value[0])).Key ?? " ";
-			if (batchim == " " && IsForeginLastConsonant(lyric)) {
-				batchim = Config.foreignLastConsonants.FirstOrDefault(lastConsonant => lyric.EndsWith(lastConsonant.Value[0])).Key ?? " ";
-			}
-
-			lyric = lyric.Replace(batchim, "");
-			var phoneme = Config.foreignPhonemes.FirstOrDefault(phoneme => lyric.StartsWith(phoneme.Key));
-				
-			return new string[] { phoneme.Value[0], phoneme.Value[1], batchim };
-		}
-
 		public override Result ConvertPhonemes(Note[] notes, Note? prev, Note? next, Note? prevNeighbour, Note? nextNeighbour, Note[] prevNeighbours) {
-			var note = notes[0];
+            Note note = notes[0];
+            string[] thisLyric = new string[] { "null", "null", "null" };
+            string[] prevLyric = new string[] { "null", "null", "null" };
+            string[] nextLyric = new string[] { "null", "null", "null" };
 
-			var prevNoteIsForeignPhoneme = false;
-			var thisNoteIsForeignPhoneme = false;
-			var nextNoteIsForeignPhoneme = false;
+            bool ignorePrevForeginPhoneme = false;
 
-			string[] prevLyricTemp = {};
-			string[] thisLyricTemp = {};
-			string[] nextLyricTemp = {};
+            if (IsForeignPhoneme(note.lyric) || IsForeginLastConsonant(note.lyric)) {
+                Hashtable TryConvertForeignPhone = Separate(note.lyric);
+                thisLyric = new string[] {
+                    (string)TryConvertForeignPhone[0],
+                    (string)TryConvertForeignPhone[1],
+                    (string)TryConvertForeignPhone[2]
+                };
 
-			// 외국어 자음일때
-			if(prev != null && IsForeignPhoneme(((Note)prev).lyric)) { // 이전 노트
-				prevNoteIsForeignPhoneme = true;
-				prevLyricTemp = ConvertForeignLyric(((Note)prev).lyric);
-			}
+                if (prevNeighbour != null && KoreanPhonemizerUtil.IsHangeul(((Note)prevNeighbour).lyric)){
+                    Hashtable lyrics = KoreanPhonemizerUtil.Variate(((Note)prevNeighbour).lyric);
 
-			if (IsForeignPhoneme(note.lyric)) { // 현재 노트
-				thisNoteIsForeignPhoneme = true;
-				thisLyricTemp = ConvertForeignLyric(note.lyric);
-			}
+                    prevLyric = new string[]{ // "ㄴ", "ㅑ", "ㅇ"
+                    (string)lyrics[0],
+                    (string)lyrics[1],
+                    (string)lyrics[2]
+                    };
+                }
 
-			if(next != null && IsForeignPhoneme(((Note)next).lyric)) { // 다음 노트
-				nextNoteIsForeignPhoneme = true;
-				nextLyricTemp = ConvertForeignLyric(((Note)next).lyric);
-			}
-			
+                if (nextNeighbour != null && KoreanPhonemizerUtil.IsHangeul(((Note)nextNeighbour).lyric)) {
+                    Hashtable lyrics = KoreanPhonemizerUtil.Variate(((Note)nextNeighbour).lyric);
 
-			
-			Hashtable lyrics;
-			if (KoreanPhonemizerUtil.IsHangeul(note.lyric)) {
-				lyrics = KoreanPhonemizerUtil.Variate(prevNeighbour, note, nextNeighbour);
-			} else {
-				lyrics = new Hashtable() { [0] = "null", [1] = "null", [2] = "null", [3] = "null", [4] = "null", [5] = "null", [6] = "null", [7] = "null", [8] = "null", };
+                    nextLyric = new string[]{ // "ㄴ", "ㅑ", "ㅇ"
+                    (string)lyrics[0],
+                    (string)lyrics[1],
+                    (string)lyrics[2]
+                    };
+                }
+            }
+            else {
+                Hashtable lyrics = KoreanPhonemizerUtil.Variate(prevNeighbour, note, nextNeighbour);
+                prevLyric = new string[]{ // "ㄴ", "ㅑ", "ㅇ"
+                (string)lyrics[0],
+                (string)lyrics[1],
+                (string)lyrics[2]
+                };
 
-				if (prevNeighbour != null && !IsForeignPhoneme(((Note)prevNeighbour).lyric) && !Config.endPhoneme.Contains(((Note)prevNeighbour).lyric)) {
-					Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)prevNeighbour, null);
-					lyrics[0] = (string) t[3];
-					lyrics[1] = (string) t[4];
-					lyrics[2] = (string) t[5];
-				}
+                if (prevNeighbour != null && (IsForeignPhoneme(((Note)prevNeighbour).lyric) || IsForeginLastConsonant(((Note)prevNeighbour).lyric))) {
+                    // 외국어 음소 뒤에 오는 반모음 포함 음소가 있을 경우 이전 가사가 없던 것으로 간주
+                    Hashtable TryConvertForeignPhone = Separate(((Note)prevNeighbour).lyric);
+                    prevLyric = new string[] {
+                        "null",
+                        "null",
+                        "null"
+                    };
+                    ignorePrevForeginPhoneme = true;
+                }
 
-				if (nextNeighbour != null && !IsForeignPhoneme(((Note)nextNeighbour).lyric) && !Config.endPhoneme.Contains(((Note)nextNeighbour).lyric)) {
-					try {
-						Hashtable t = KoreanPhonemizerUtil.Variate(null, (Note)nextNeighbour, null);
-						lyrics[6] = (string) t[3];
-						lyrics[7] = (string) t[4];
-						lyrics[8] = (string) t[5];
-					} catch (Exception e) {
-						Log.Debug($"nextNeighbour Error : {e.Message} / {((Note)nextNeighbour).lyric}");
-					}
-				}
-			}
+                thisLyric = new string[]{ // "ㄴ", "ㅑ", "ㅇ"
+                (string)lyrics[3],
+                (string)lyrics[4],
+                (string)lyrics[5]
+                };
+                nextLyric = new string[]{ // "ㄴ", "ㅑ", "ㅇ"
+                (string)lyrics[6],
+                (string)lyrics[7],
+                (string)lyrics[8]
+                };
 
-			string[] prevLyric = new string[] {
-				prevNoteIsForeignPhoneme ? prevLyricTemp[0] : (string) lyrics[0],
-				prevNoteIsForeignPhoneme ? prevLyricTemp[1] : (string) lyrics[1],
-				prevNoteIsForeignPhoneme ? prevLyricTemp[2] : (string) lyrics[2],
-			};
-			string[] thisLyric = new string[] {
-				thisNoteIsForeignPhoneme ? thisLyricTemp[0] : (string) lyrics[3],
-				thisNoteIsForeignPhoneme ? thisLyricTemp[1] : (string) lyrics[4],
-				thisNoteIsForeignPhoneme ? thisLyricTemp[2] : (string) lyrics[5],
-			};
-			string[] nextLyric = new string[] {
-				nextNoteIsForeignPhoneme ? nextLyricTemp[0] : (string) lyrics[6],
-				nextNoteIsForeignPhoneme ? nextLyricTemp[1] : (string) lyrics[7],
-				nextNoteIsForeignPhoneme ? nextLyricTemp[2] : (string) lyrics[8],
-			};
+            }
 
-			if (thisLyric[0] == "null") {
-				return new Result() {
-					phonemes = new Phoneme[] {
-						new Phoneme { phoneme = FindInOto(note.lyric, note) }
-					}
-				};
-			}
 
-			try {
+
+
+            if (thisLyric[0] == "null") {
+                return GenerateResult(FindInOto(notes[0].lyric, notes[0]));
+            }
+
+            if (!ignorePrevForeginPhoneme) {
+                if (prevNeighbour != null && (IsForeignPhoneme(((Note)prevNeighbour).lyric) || IsForeginLastConsonant(((Note)prevNeighbour).lyric))) {
+                    Hashtable TryConvertForeignPhone = Separate(((Note)prevNeighbour).lyric);
+                    prevLyric = new string[] {
+                    (string)TryConvertForeignPhone[0],
+                    (string)TryConvertForeignPhone[1],
+                    (string)TryConvertForeignPhone[2]
+                };
+                }
+            }
+            
+
+            if (nextNeighbour != null && (IsForeignPhoneme(((Note)nextNeighbour).lyric) || IsForeginLastConsonant(((Note)nextNeighbour).lyric))) {
+                Hashtable TryConvertForeignPhone = Separate(((Note)nextNeighbour).lyric);
+                nextLyric = new string[] {
+                    (string)TryConvertForeignPhone[0],
+                    (string)TryConvertForeignPhone[1],
+                    (string)TryConvertForeignPhone[2]
+                };
+            }
+
+            try {
 				return ConvertForCMPX(notes, prevLyric, thisLyric, nextLyric, nextNeighbour);
 			} catch (Exception e) {
 				Log.Error(e, $"Render Phoneme Error");
@@ -567,6 +615,79 @@ namespace OpenUtau.Plugin.Builtin {
 			}
 		}
 
+        
+        private Hashtable Separate(string lyricToseparate) {
+            // 영어 음소 및 한글 음소를 초성 중성 종성으로 변환합니다.
+            Debug.Print(lyricToseparate);
+
+            string first = "null";
+            string mid = "null";
+            string last = "null";
+
+            bool isDetected = true;
+
+            string lyric = lyricToseparate;
+            
+
+            if (IsForeignPhoneme(lyric)) { // [rr] ㅏ er
+                foreach (string c in Config.firstForeignConsonants) {
+                    if (lyric.StartsWith(c)) {
+                        first = c;
+                        lyric = lyric.Substring(c.Length);
+                        isDetected = true;
+                        break;
+                    }
+                }
+                if (!isDetected) {
+                    // Do something
+                    isDetected = true;
+                }
+            }
+            if (IsForeginLastConsonant(lyric)) { // (rr) ㅏ [er]
+                foreach (string c in Config.foreignLastConsonants.Keys) {
+                    if (lyric.EndsWith(c)) {
+                        last = c;
+                        lyric = lyric.Substring(0, lyric.Length - c.Length);
+                        isDetected = true; 
+                        break;
+                    }
+                }
+                if (!isDetected) {
+                    // Do something
+                    isDetected = true;
+                }
+            }
+            if (! string.IsNullOrEmpty(lyric)) {
+                if (KoreanPhonemizerUtil.IsHangeul(lyric) && first == "null") { // general korean lyric
+                    Hashtable separated = KoreanPhonemizerUtil.Separate(lyric);
+                    first = (string)separated[0];
+                    mid = (string)separated[1];
+                }
+                else {
+                    string? _ = KoreanPhonemizerUtil.TryParseKoreanRomaji(lyric);
+                    if (_ != null) {
+                        Hashtable separated = KoreanPhonemizerUtil.Separate(_); // eo to ㅓ
+                        mid = (string)separated[1];
+                    }
+                    else {
+                        mid = lyric; 
+                    }
+                    
+                }
+                
+            }
+
+            Debug.Print($"{first} {mid} {last}");
+
+            
+
+            return new Hashtable {
+                [0] = first,
+                [1] = mid,
+                [2] = last
+            };
+            
+        }
 		public override Result GenerateEndSound(Note[] notes, Note? prev, Note? next, Note? prevNeighbour, Note? nextNeighbour, Note[] prevNeighbours) {
 			var phonemes = new Phoneme[] { };
 			var note = notes[0];
@@ -577,14 +698,8 @@ namespace OpenUtau.Plugin.Builtin {
 				var prevNote = (Note)prevNeighbour;
 				var prevLyrics = new Hashtable {};
 				
-				if (IsForeignPhoneme(prevNote.lyric)) {
-					var tempPrevLyrics = ConvertForeignLyric(prevNote.lyric);
-					prevLyrics[0] = tempPrevLyrics[0];
-					prevLyrics[1] = tempPrevLyrics[1];
-					prevLyrics[2] = tempPrevLyrics[2];
-				} else {
-					prevLyrics = KoreanPhonemizerUtil.Separate(prevNote.lyric);
-				}
+				prevLyrics = Separate(prevNote.lyric);
+				
 
 
 				var prevLyric = new string[] {
@@ -597,7 +712,7 @@ namespace OpenUtau.Plugin.Builtin {
 				if (prevLyric[2] == " ") { // 받침 없음
 					prefix = GetSingleVowel(prevLyric[1]);
 				} else {
-					prefix = Config.lastConsonants[prevLyric[2]][0].ToUpper();
+					prefix = Config.CompiledLastConsonants[prevLyric[2]][0].ToUpper();
 				}
 
 				var phoneme = $"{prefix} {note.lyric}";
