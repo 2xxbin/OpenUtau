@@ -19,7 +19,7 @@ namespace OpenUtau.Plugin.Builtin {
       "ch", "zh", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "z", "c", "s", "r", "j", "q", "x", "g", "k", "h"
     };
 
-    private readonly static string[] longVCTimingConsonants = new string[] { "ch", "p","f", "t", "c", "q", "k" };
+    private readonly static string[] longVCTimingConsonants = new string[] { "ch", "p", "f", "t", "c", "q", "k" };
     private readonly static string[] shortVCTimingConsonants = new string[] { "z", "c", "s", "sh", "f", "x", "s" };
 
     private readonly static string[] frontSemiVowels = new string[] { "Y", "W", "V" };
@@ -75,16 +75,16 @@ namespace OpenUtau.Plugin.Builtin {
     public readonly static string[] initalCV = new string[] { "h" };
 
     public readonly static int frontSemiVowelTiming = 25;
-    
+
     public readonly static int initalLiquidCTiming = 25;
     public readonly static int initalSibilantCTiming = 100;
 
     public override void SetSinger(USinger singer) {
       if (singer == null) return;
-      
+
       this.singer = singer;
     }
-  
+
     static string GetOtoAlias(USinger singer, string phoneme, Note note) {
       var attr = note.phonemeAttributes?.FirstOrDefault(attr => attr.index == 0) ?? default;
       string color = attr.voiceColor ?? string.Empty;
@@ -117,10 +117,10 @@ namespace OpenUtau.Plugin.Builtin {
       if (pinyin.StartsWith("yu")) return "v" + pinyin.Substring(2);
       if (pinyin.StartsWith("y")) return "i" + pinyin.Substring(1);
       if (pinyin.StartsWith("w")) return "u" + pinyin.Substring(1);
-      
+
       if (pinyin.EndsWith("i") && iiVowelConsonants.Contains(pinyin.Replace("i", ""))) return "ii";
       if (pinyin.Substring(1).StartsWith("u") && vVowelConsonants.Contains(pinyin.Substring(0, 1))) return "v" + pinyin.Substring(2);
-      
+
       if (pinyin.EndsWith("iu")) return "iou";
       if (pinyin.EndsWith("ui")) return "uei";
       if (pinyin.EndsWith("un")) return "uen";
@@ -130,10 +130,10 @@ namespace OpenUtau.Plugin.Builtin {
           return pinyin.Substring(c.Length);
         }
       }
-      
+
       return pinyin;
     }
-    
+
     private string getPinyinConsonant(string pinyin) {
       foreach (string c in consonant) {
         if (pinyin.StartsWith(c)) {
@@ -142,7 +142,7 @@ namespace OpenUtau.Plugin.Builtin {
       }
       return "";
     }
-    
+
     private int getVCtiming(string pinyin, int duration) {
       string consonant = getPinyinConsonant(pinyin);
       int timing = 60;
@@ -157,29 +157,31 @@ namespace OpenUtau.Plugin.Builtin {
       List<Phoneme> resultPhonemes = new List<Phoneme>();
       int totalDuration = notes.Sum(n => n.duration);
       Note note = notes[0];
-      
+
       try {
 
         if (endBreaths.Contains(note.lyric) && prev != null) {
-          Note prevNote = (Note) prev;
+          Note prevNote = (Note)prev;
           string prevPhoneme = vowelPhonemes[GetPinyinVowel(prevNote.lyric)][^1];
 
-          return new Result { phonemes = new Phoneme[] {
+          return new Result {
+            phonemes = new Phoneme[] {
             new Phoneme {
               phoneme = GetOtoAlias(singer, prevPhoneme + " " + note.lyric, note),
             }
-          }};
+          }
+          };
         }
 
         // If a phonetic hint exists.
         if (notes[0].phoneticHint != null) {
-            // Phonetic hints are separated by commas.
+          // Phonetic hints are separated by commas.
           var phoneticHints = notes[0].phoneticHint.Split(",");
           var phonemes = new Phoneme[phoneticHints.Length];
 
           foreach (var phoneticHint in phoneticHints.Select((hint, index) => (hint, index))) {
             phonemes[phoneticHint.index] = new Phoneme {
-              phoneme = GetOtoAlias(singer, phoneticHint.hint.Trim(), notes[0]) ,
+              phoneme = GetOtoAlias(singer, phoneticHint.hint.Trim(), notes[0]),
               // The position is evenly divided into n parts.
               position = totalDuration - ((totalDuration / phoneticHints.Length) * (phoneticHints.Length - phoneticHint.index)),
             };
@@ -209,7 +211,7 @@ namespace OpenUtau.Plugin.Builtin {
             vowelPhoneme.RemoveAt(0);
           }
         }
-        
+
         // CV
         if (consonant != "") {
           resultPhonemes.Add(new Phoneme() { phoneme = GetOtoAlias(singer, consonant + vowelPhoneme[0], note), position = 0 });
@@ -241,15 +243,15 @@ namespace OpenUtau.Plugin.Builtin {
           }
 
           if (VCtiming != 0) {
-            VCPhoneme = new Phoneme() { 
-              phoneme = GetOtoAlias(singer, vowelPhoneme[^1] + " " + nextConsonant, note), 
-              position = totalDuration - VCtiming 
+            VCPhoneme = new Phoneme() {
+              phoneme = GetOtoAlias(singer, vowelPhoneme[^1] + " " + nextConsonant, note),
+              position = totalDuration - VCtiming
             };
           }
         }
 
         // middle vowel
-        if (frontSemiVowels.Contains(vowelPhoneme[0])) 
+        if (frontSemiVowels.Contains(vowelPhoneme[0]))
           resultPhonemes.Add(new Phoneme() { phoneme = GetOtoAlias(singer, vowelPhoneme[0] + " " + vowelPhoneme[1], note), position = consonant == "" ? 0 : frontSemiVowelTiming });
 
         // back semivowel
@@ -259,7 +261,7 @@ namespace OpenUtau.Plugin.Builtin {
         }
 
         // VC 추가
-        if (VCPhoneme != null) resultPhonemes.Add((Phoneme) VCPhoneme);
+        if (VCPhoneme != null) resultPhonemes.Add((Phoneme)VCPhoneme);
 
 
       } catch (Exception e) {
