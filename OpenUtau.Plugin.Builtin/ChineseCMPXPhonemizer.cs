@@ -134,7 +134,7 @@ namespace OpenUtau.Plugin.Builtin {
       return pinyin;
     }
 
-    private string getPinyinConsonant(string pinyin) {
+    private string GetPinyinConsonan(string pinyin) {
       foreach (string c in consonant) {
         if (pinyin.StartsWith(c)) {
           return c;
@@ -143,8 +143,8 @@ namespace OpenUtau.Plugin.Builtin {
       return "";
     }
 
-    private int getVCtiming(string pinyin, int duration) {
-      string consonant = getPinyinConsonant(pinyin);
+    private int GetVCTiming(string pinyin, int duration) {
+      string consonant = GetPinyinConsonan(pinyin);
       int timing = 60;
 
       if (longVCTimingConsonants.Contains(consonant)) timing = duration / 3;
@@ -192,7 +192,7 @@ namespace OpenUtau.Plugin.Builtin {
           };
         }
 
-        string consonant = getPinyinConsonant(note.lyric);
+        string consonant = GetPinyinConsonan(note.lyric);
         string vowel = GetPinyinVowel(note.lyric);
         List<string> vowelPhoneme = vowelPhonemes[vowel].ToList();
 
@@ -233,13 +233,13 @@ namespace OpenUtau.Plugin.Builtin {
           Note nextNote = (Note)nextNeighbour;
           string nextLyric = nextNote.lyric;
           string nextSemiVowel = vowelPhonemes[GetPinyinVowel(nextLyric)][0];
-          string nextConsonant = getPinyinConsonant(nextLyric);
+          string nextConsonant = GetPinyinConsonan(nextLyric);
 
           if (frontSemiVowels.Contains(nextSemiVowel) && nextConsonant == "") {
             nextConsonant = nextSemiVowel;
             VCtiming = frontSemiVowelTiming;
           } else if (nextConsonant != "") {
-            VCtiming = getVCtiming(nextNote.lyric, totalDuration);
+            VCtiming = GetVCTiming(nextNote.lyric, totalDuration);
           }
 
           if (VCtiming != 0) {
