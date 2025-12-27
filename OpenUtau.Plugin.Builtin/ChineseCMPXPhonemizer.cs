@@ -15,64 +15,64 @@ namespace OpenUtau.Plugin.Builtin {
   public class ChineseCMPXPhonemizer : BaseChinesePhonemizer {
     private USinger? singer;
 
-    private static readonly string[] consonant = new string[] {
+    private static readonly HashSet<string> consonant = new HashSet<string> {
       "ch", "zh", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "z", "c", "s", "r", "j", "q", "x", "g", "k", "h"
     };
 
-    private static readonly string[] longVCTimingConsonants = new string[] { "ch", "p", "f", "t", "c", "q", "k" };
-    private static readonly string[] shortVCTimingConsonants = new string[] { "z", "c", "s", "sh", "f", "x", "s" };
+    private static readonly HashSet<string> longVCTimingConsonants = new HashSet<string> { "ch", "p", "f", "t", "c", "q", "k" };
+    private static readonly HashSet<string> shortVCTimingConsonants = new HashSet<string> { "z", "c", "s", "sh", "f", "x", "s" };
 
-    private static readonly string[] frontSemiVowels = new string[] { "Y", "W", "V" };
+    private static readonly HashSet<string> frontSemiVowels = new HashSet<string> { "Y", "W", "V" };
 
     private static readonly Dictionary<string, string[]> vowelPhonemes = new Dictionary<string, string[]> {
-      { "a", new string[] { "a" } },
-      { "o", new string[] { "o" } },
-      { "e", new string[] { "e" } },
-      { "i", new string[] { "i" } },
-      { "u", new string[] { "u" } },
-      { "v", new string[] { "v" } },
-      { "er", new string[] { "er" } },
-      { "ii", new string[] { "ii" } },
-      { "oo", new string[] { "oo" } },
-      { "ee", new string[] { "ee" } },
-      { "ai", new string[] { "a", ":i" } },
-      { "ei", new string[] { "ee", ":i" } },
-      { "ao", new string[] { "a", ":o" } },
-      { "ou", new string[] { "oo", ":u" } },
-      { "ong", new string[] { "oo", ":ng" } },
-      { "an", new string[] { "a", ":n" } },
-      { "en", new string[] { "e", ":n" } },
-      { "ang", new string[] { "a", ":ng" } },
-      { "eng", new string[] { "e", ":ng" } },
-      { "ia", new string[] { "Y", "a" } },
-      { "iao", new string[] { "Y", "a", ":o" } },
-      { "ie", new string[] { "Y", "ee" } },
-      { "iou", new string[] { "Y", "oo", ":u" } },
-      { "ian", new string[] { "Y", "ee", ":n" } },
-      { "in", new string[] { "i", ":n" } },
-      { "iang", new string[] { "Y", "a", ":ng" } },
-      { "ing", new string[] { "i", ":ng" } },
-      { "iong", new string[] { "Y", "oo", ":ng" } },
-      { "ua", new string[] { "W", "a" } },
-      { "uo", new string[] { "W", "oo" } },
-      { "uai", new string[] { "W", "a", ":i" } },
-      { "uei", new string[] { "W", "ee", ":i" } },
-      { "uan", new string[] { "W", "a", ":n" } },
-      { "uen", new string[] { "W", "e", ":n" } },
-      { "uang", new string[] { "W", "a", ":ng" } },
-      { "ueng", new string[] { "W", "e", ":ng" } },
-      { "uong", new string[] { "W", "oo", ":ng" } },
-      { "ve", new string[] { "V", "ee" } },
-      { "van", new string[] { "V", "ee", ":n" } },
-      { "vn", new string[] { "v", ":n" } },
+      ["a"] = new string[] { "a" },
+      ["o"] = new string[] { "o" },
+      ["e"] = new string[] { "e" },
+      ["i"] = new string[] { "i" },
+      ["u"] = new string[] { "u" },
+      ["v"] = new string[] { "v" },
+      ["er"] = new string[] { "er" },
+      ["ii"] = new string[] { "ii" },
+      ["oo"] = new string[] { "oo" },
+      ["ee"] = new string[] { "ee" },
+      ["ai"] = new string[] { "a", ":i" },
+      ["ei"] = new string[] { "ee", ":i" },
+      ["ao"] = new string[] { "a", ":o" },
+      ["ou"] = new string[] { "oo", ":u" },
+      ["ong"] = new string[] { "oo", ":ng" },
+      ["an"] = new string[] { "a", ":n" },
+      ["en"] = new string[] { "e", ":n" },
+      ["ang"] = new string[] { "a", ":ng" },
+      ["eng"] = new string[] { "e", ":ng" },
+      ["ia"] = new string[] { "Y", "a" },
+      ["iao"] = new string[] { "Y", "a", ":o" },
+      ["ie"] = new string[] { "Y", "ee" },
+      ["iou"] = new string[] { "Y", "oo", ":u" },
+      ["ian"] = new string[] { "Y", "ee", ":n" },
+      ["in"] = new string[] { "i", ":n" },
+      ["iang"] = new string[] { "Y", "a", ":ng" },
+      ["ing"] = new string[] { "i", ":ng" },
+      ["iong"] = new string[] { "Y", "oo", ":ng" },
+      ["ua"] = new string[] { "W", "a" },
+      ["uo"] = new string[] { "W", "oo" },
+      ["uai"] = new string[] { "W", "a", ":i" },
+      ["uei"] = new string[] { "W", "ee", ":i" },
+      ["uan"] = new string[] { "W", "a", ":n" },
+      ["uen"] = new string[] { "W", "e", ":n" },
+      ["uang"] = new string[] { "W", "a", ":ng" },
+      ["ueng"] = new string[] { "W", "e", ":ng" },
+      ["uong"] = new string[] { "W", "oo", ":ng" },
+      ["ve"] = new string[] { "V", "ee" },
+      ["van"] = new string[] { "V", "ee", ":n" },
+      ["vn"] = new string[] { "v", ":n" },
     };
 
-    public static readonly string[] iiVowelConsonants = new string[] { "zh", "ch", "sh", "z", "c", "s", "r" };
-    public static readonly string[] vVowelConsonants = new string[] { "j", "q", "x" };
-    public static readonly string[] initialLiquidConsonants = new string[] { "m", "n", "l", "r" };
-    public static readonly string[] initialSibilantConsonants = new string[] { "f", "z", "s", "zh", "ch", "sh", "x" };
-    public static readonly string[] endBreaths = new string[] { "R", "-" };
-    public static readonly string[] initialCV = new string[] { "h" };
+    public static readonly HashSet<string> iiVowelConsonants = new HashSet<string> { "zh", "ch", "sh", "z", "c", "s", "r" };
+    public static readonly HashSet<string> vVowelConsonants = new HashSet<string> { "j", "q", "x" };
+    public static readonly HashSet<string> initialLiquidConsonants = new HashSet<string> { "m", "n", "l", "r" };
+    public static readonly HashSet<string> initialSibilantConsonants = new HashSet<string> { "f", "z", "s", "zh", "ch", "sh", "x" };
+    public static readonly HashSet<string> endBreaths = new HashSet<string> { "R", "-" };
+    public static readonly HashSet<string> initialCV = new HashSet<string> { "h" };
 
     public static readonly int frontSemiVowelTiming = 25;
 
