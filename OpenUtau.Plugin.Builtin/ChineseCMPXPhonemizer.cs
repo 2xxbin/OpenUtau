@@ -227,8 +227,8 @@ namespace OpenUtau.Plugin.Builtin {
         Phoneme? VCPhoneme = null;
         int VCtiming = 0;
 
-        if (next != null && !endBreaths.Contains(next?.lyric)) {
-          Note nextNote = (Note) next;
+        if (nextNeighbour != null && !endBreaths.Contains(nextNeighbour?.lyric)) {
+          Note nextNote = (Note)nextNeighbour;
           string nextLyric = nextNote.lyric;
           string nextSemiVowel = vowelPhonemes[GetPinyinVowel(nextLyric)][0];
           string nextConsonant = getPinyinConsonant(nextLyric);
