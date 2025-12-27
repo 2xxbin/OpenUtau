@@ -15,16 +15,16 @@ namespace OpenUtau.Plugin.Builtin {
   public class ChineseCMPXPhonemizer : BaseChinesePhonemizer {
     private USinger? singer;
 
-    private readonly static string[] consonant = new string[] {
+    private static readonly string[] consonant = new string[] {
       "ch", "zh", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "z", "c", "s", "r", "j", "q", "x", "g", "k", "h"
     };
 
-    private readonly static string[] longVCTimingConsonants = new string[] { "ch", "p", "f", "t", "c", "q", "k" };
-    private readonly static string[] shortVCTimingConsonants = new string[] { "z", "c", "s", "sh", "f", "x", "s" };
+    private static readonly string[] longVCTimingConsonants = new string[] { "ch", "p", "f", "t", "c", "q", "k" };
+    private static readonly string[] shortVCTimingConsonants = new string[] { "z", "c", "s", "sh", "f", "x", "s" };
 
-    private readonly static string[] frontSemiVowels = new string[] { "Y", "W", "V" };
+    private static readonly string[] frontSemiVowels = new string[] { "Y", "W", "V" };
 
-    private readonly static Dictionary<string, string[]> vowelPhonemes = new Dictionary<string, string[]> {
+    private static readonly Dictionary<string, string[]> vowelPhonemes = new Dictionary<string, string[]> {
       { "a", new string[] { "a" } },
       { "o", new string[] { "o" } },
       { "e", new string[] { "e" } },
@@ -67,17 +67,17 @@ namespace OpenUtau.Plugin.Builtin {
       { "vn", new string[] { "v", ":n" } },
     };
 
-    public readonly static string[] iiVowelConsonants = new string[] { "zh", "ch", "sh", "z", "c", "s", "r" };
-    public readonly static string[] vVowelConsonants = new string[] { "j", "q", "x" };
-    public readonly static string[] initialLiquidConsonants = new string[] { "m", "n", "l", "r" };
-    public readonly static string[] initialSibilantConsonants = new string[] { "f", "z", "s", "zh", "ch", "sh", "x" };
-    public readonly static string[] endBreaths = new string[] { "R", "-" };
-    public readonly static string[] initialCV = new string[] { "h" };
+    public static readonly string[] iiVowelConsonants = new string[] { "zh", "ch", "sh", "z", "c", "s", "r" };
+    public static readonly string[] vVowelConsonants = new string[] { "j", "q", "x" };
+    public static readonly string[] initialLiquidConsonants = new string[] { "m", "n", "l", "r" };
+    public static readonly string[] initialSibilantConsonants = new string[] { "f", "z", "s", "zh", "ch", "sh", "x" };
+    public static readonly string[] endBreaths = new string[] { "R", "-" };
+    public static readonly string[] initialCV = new string[] { "h" };
 
-    public readonly static int frontSemiVowelTiming = 25;
+    public static readonly int frontSemiVowelTiming = 25;
 
-    public readonly static int initialLiquidCTiming = 25;
-    public readonly static int initialSibilantCTiming = 100;
+    public static readonly int initialLiquidCTiming = 25;
+    public static readonly int initialSibilantCTiming = 100;
 
     public override void SetSinger(USinger singer) {
       if (singer == null) return;
