@@ -69,15 +69,15 @@ namespace OpenUtau.Plugin.Builtin {
 
     public readonly static string[] iiVowelConsonants = new string[] { "zh", "ch", "sh", "z", "c", "s", "r" };
     public readonly static string[] vVowelConsonants = new string[] { "j", "q", "x" };
-    public readonly static string[] initalLiquidConsonants = new string[] { "m", "n", "l", "r" };
-    public readonly static string[] initalSibilantConsonants = new string[] { "f", "z", "s", "zh", "ch", "sh", "x" };
+    public readonly static string[] initialLiquidConsonants = new string[] { "m", "n", "l", "r" };
+    public readonly static string[] initialSibilantConsonants = new string[] { "f", "z", "s", "zh", "ch", "sh", "x" };
     public readonly static string[] endBreaths = new string[] { "R", "-" };
-    public readonly static string[] initalCV = new string[] { "h" };
+    public readonly static string[] initialCV = new string[] { "h" };
 
     public readonly static int frontSemiVowelTiming = 25;
 
-    public readonly static int initalLiquidCTiming = 25;
-    public readonly static int initalSibilantCTiming = 100;
+    public readonly static int initialLiquidCTiming = 25;
+    public readonly static int initialSibilantCTiming = 100;
 
     public override void SetSinger(USinger singer) {
       if (singer == null) return;
@@ -197,15 +197,15 @@ namespace OpenUtau.Plugin.Builtin {
         List<string> vowelPhoneme = vowelPhonemes[vowel].ToList();
 
         if (prev == null || (prev != null && endBreaths.Contains(prev?.lyric))) {
-          if (initalLiquidConsonants.Contains(consonant) || initalSibilantConsonants.Contains(consonant)) { // "- consonant" (- m)
+          if (initialLiquidConsonants.Contains(consonant) || initialSibilantConsonants.Contains(consonant)) { // "- consonant" (- m)
             Debug.WriteLine("- C");
-            int initalCTiming = initalLiquidConsonants.Contains(consonant) ? -initalLiquidCTiming : -initalSibilantCTiming;
+            int initialCTiming = initialLiquidConsonants.Contains(consonant) ? -initialLiquidCTiming : -initialSibilantCTiming;
 
-            resultPhonemes.Add(new Phoneme() { phoneme = GetOtoAlias(singer, $"- {consonant}", note), position = initalCTiming });
+            resultPhonemes.Add(new Phoneme() { phoneme = GetOtoAlias(singer, $"- {consonant}", note), position = initialCTiming });
           } else if (frontSemiVowels.Contains(vowelPhoneme[0]) && consonant == "") { // "- semivowel" (- Y)
             Debug.WriteLine("- semivowel");
             resultPhonemes.Add(new Phoneme() { phoneme = GetOtoAlias(singer, $"- {vowelPhoneme[0]}", note), position = -frontSemiVowelTiming });
-          } else if (initalCV.Contains(consonant)) { // "- CV" (- h)
+          } else if (initialCV.Contains(consonant)) { // "- CV" (- h)
             Debug.WriteLine("- CV");
             resultPhonemes.Add(new Phoneme() { phoneme = GetOtoAlias(singer, $"- {consonant}{vowelPhoneme[0]}", note), position = 0 });
             vowelPhoneme.RemoveAt(0);
